@@ -10,7 +10,7 @@ UNKNOWN = -1;
 previous_mode = UNKNOWN;
 
 %% load acc data and gnss data
-data = load('.\mrvlAcc_roadtest2_50hz.txt');
+data = load('.\mrvlAcc_roadtest3_50hz.txt');
 acc_data = data(:, 3:5);
 
 %% process sample data every 3 second
@@ -33,7 +33,7 @@ for i = 1:length(acc_data)
         acc_det_std(result_count) = std(acc_det_pool_3s);
         acc_det_no_bias = acc_det_pool_3s - acc_det_mean;
         acc_det_energy(result_count) = sum(acc_det_no_bias.^2)/signal_length;
-        if (acc_det_std(result_count) < 0.15 || acc_det_energy(result_count) < 0.02)
+        if (acc_det_std(result_count) < 0.25 || acc_det_energy(result_count) < 0.08)
             motion_mode(result_count) = STATIC;
         else
             motion_mode(result_count) = UNKNOWN;
@@ -43,9 +43,9 @@ for i = 1:length(acc_data)
         Ft(result_count) = Frequency;
         Amp(result_count) = Amplitude;
         if motion_mode(result_count) ~= STATIC
-            if Ft(result_count) > 1.5 && Ft(result_count) < 1.9 || Amp(result_count) > 1.0
+            if Ft(result_count) > 1.5 && Ft(result_count) < 1.9 && Amp(result_count) > 1.0
                 motion_mode(result_count) = WALKING;
-            else if Amp(result_count) > 0.1 && Amp(result_count) < 0.6
+            else if Amp(result_count) > 0.2 && Amp(result_count) < 0.6
                     motion_mode(result_count) = DRIVING;
                 end
             end
@@ -53,7 +53,7 @@ for i = 1:length(acc_data)
         
         %% include previous information
         if previous_mode == STATIC
-            if (acc_det_std(result_count) < 0.5 || acc_det_energy(result_count) < 0.8)
+            if (acc_det_std(result_count) < 0.9 || acc_det_energy(result_count) < 0.8)
                 motion_mode(result_count) = STATIC;
             end
         end
@@ -76,7 +76,7 @@ for i = 1:length(acc_data)
 end
 
 %% Display result
-if 1
+if 0
 figure;
 plot(Ft, Amp, '.');
 title('Single-Sided Amplitude Spectrum of Filetered Signal')
@@ -99,13 +99,13 @@ plot(motion_mode);
 title('motion detect result') 
 end
 
-if 1
+if 0
 figure;
 plot(Amp);
 title('amp')
 end
 
-if 1
+if 0
 figure;
 plot(Ft)
 title('frequency');
