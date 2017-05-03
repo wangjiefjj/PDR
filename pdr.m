@@ -7,7 +7,7 @@ addpath('.\functions\');
 % format:
 % type: GNSS(0)   TimeTag(ms) Latitude(rad) Longitude(rad) Altitude(m) VelocityE(m/s2) VelocityN(m/s2) VelocityU(m/s2) Heading(rad)
 % type: SENSOR(1) TimeTag(ms) AccX(m/s2) AccY(m/s2) AccZ(m/s2) GyroX(rad) GyroY(rad) GyroZ(rad) MagX(uT) MagY(uT) MagZ(uT) 
-data = load('.\pdr_data.log');
+data = load('.\data\pdr_data\pdr_data.log');
 GNSS = 0;
 SENSOR = 1;
 

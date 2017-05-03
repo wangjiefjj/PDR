@@ -10,7 +10,7 @@ UNKNOWN = -1;
 previous_mode = UNKNOWN;
 
 %% load acc data and gnss data
-data = load('.\mrvlAcc_roadtest3_50hz.txt');
+data = load('.\data\context_data\mrvlAcc_roadtest2_50hz.txt');
 acc_data = data(:, 3:5);
 
 %% process sample data every 3 second
@@ -99,7 +99,7 @@ plot(motion_mode);
 title('motion detect result') 
 end
 
-if 0
+if 1
 figure;
 plot(Amp);
 title('amp')
