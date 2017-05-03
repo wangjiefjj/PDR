@@ -1,0 +1,322 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<kml xmlns="http://earth.google.com/kml/2.2">
+  <Document>
+    <name></name>
+    <Style id="docIcon">
+    <ListStyle>
+      <ItemIcon><href>C:\Users\SHSX03\AppData\Roaming\Marvell Navigation\Marvell GPS Monitor\0000FF.png</href></ItemIcon>
+      <listItemType>checkHideChildren</listItemType>
+    </ListStyle>
+    </Style>
+    <styleUrl>#docIcon</styleUrl>
+    <Folder>
+      <name>Points</name>
+      <Style id="folderStyle">
+      <ListStyle>
+        <ItemIcon><href>C:\Users\SHSX03\AppData\Roaming\Marvell Navigation\Marvell GPS Monitor\0000FF.png</href></ItemIcon>
+        <listItemType>checkHideChildren</listItemType>
+      </ListStyle>
+      </Style>
+      <styleUrl>#folderStyle</styleUrl>
+      <Style id="dot">
+        <IconStyle>  
+          <Icon><href>http://maps.google.com/mapfiles/kml/pal2/icon26.png</href></Icon>
+          <color>FF0000FF</color>
+          <colorMode>normal</colorMode>
+          <scale>0.40</scale>
+          <hotSpot x="0.5" xunits="fraction" y="0.5" yunits="fraction" />
+        </IconStyle>
+        <BalloonStyle>
+          <textColor>FF800000</textColor>
+          <bgColor>FFFFEFEF</bgColor>
+          <text><![CDATA[<font size=+1><b><u>Details</u></b><br></font>]]>$[description]</text>
+        </BalloonStyle>
+      </Style>
+      <Placemark>
+        <description><![CDATA[<i>Point #1<br>Time: 02:12:15<br>Time tag: 7936<br>Latitude: 31.20014967 deg<br>Longitude: 121.57973150 deg<br>Altitude: 3.70 m<br>Speed: 0.00 m/s (0 mi/hr, 0 km/hr)<br>Heading: 0.0 deg<br>Fix indicator: 3-D<br>Used SVs: 6 (GPS: 3, 14, 22, 29, 31, 32)<br>CN0: (GPS:)</i>]]></description>
+        <styleUrl>#dot</styleUrl>
+        <Point><coordinates>121.57973150, 31.20014967, 3.7</coordinates></Point>
+      </Placemark>
+      <Placemark>
+        <description><![CDATA[<i>Point #2<br>Time: 02:12:16<br>Time tag: 439937<br>Latitude: 31.20014317 deg<br>Longitude: 121.57973617 deg<br>Altitude: 5.40 m<br>Speed: 0.15 m/s (0 mi/hr, 1 km/hr)<br>Heading: 28.3 deg<br>Fix indicator: 3-D<br>Used SVs: 6 (GPS: 3, 14, 22, 29, 31, 32)<br>CN0: (GPS:)</i>]]></description>
+        <styleUrl>#dot</styleUrl>
+        <Point><coordinates>121.57973617, 31.20014317, 5.4</coordinates></Point>
+      </Placemark>
+      <Placemark>
+        <description><![CDATA[<i>Point #3<br>Time: 02:12:17<br>Time tag: 439938<br>Latitude: 31.20014167 deg<br>Longitude: 121.57974117 deg<br>Altitude: 7.20 m<br>Speed: 0.15 m/s (0 mi/hr, 1 km/hr)<br>Heading: 28.1 deg<br>Fix indicator: 3-D<br>Used SVs: 6 (GPS: 3, 14, 22, 29, 31, 32)<br>CN0: (GPS:)</i>]]></description>
+        <styleUrl>#dot</styleUrl>
+        <Point><coordinates>121.57974117, 31.20014167, 7.2</coordinates></Point>
+      </Placemark>
+      <Placemark>
+        <description><![CDATA[<i>Point #4<br>Time: 02:12:18<br>Time tag: 439939<br>Latitude: 31.20013317 deg<br>Longitude: 121.57973783 deg<br>Altitude: 5.40 m<br>Speed: 0.15 m/s (0 mi/hr, 1 km/hr)<br>Heading: 24.5 deg<br>Fix indicator: 3-D<br>Used SVs: 6 (GPS: 3, 14, 22, 29, 31, 32)<br>CN0: (GPS:)</i>]]></description>
+        <styleUrl>#dot</styleUrl>
+        <Point><coordinates>121.57973783, 31.20013317, 5.4</coordinates></Point>
+      </Placemark>
+      <Placemark>
+        <description><![CDATA[<i>Point #5<br>Time: 02:12:19<br>Time tag: 439940<br>Latitude: 31.20012983 deg<br>Longitude: 121.57973567 deg<br>Altitude: 5.10 m<br>Speed: 0.10 m/s (0 mi/hr, 0 km/hr)<br>Heading: 23.6 deg<br>Fix indicator: 3-D<br>Used SVs: 6 (GPS: 3, 14, 22, 29, 31, 32)<br>CN0: (GPS:)</i>]]></description>
+        <styleUrl>#dot</styleUrl>
+        <Point><coordinates>121.57973567, 31.20012983, 5.1</coordinates></Point>
+      </Placemark>
+      <Placemark>
+        <description><![CDATA[<i>Point #6<br>Time: 02:12:20<br>Time tag: 439941<br>Latitude: 31.20013517 deg<br>Longitude: 121.57973933 deg<br>Altitude: 6.40 m<br>Speed: 0.10 m/s (0 mi/hr, 0 km/hr)<br>Heading: 33.9 deg<br>Fix indicator: 3-D<br>Used SVs: 6 (GPS: 3, 14, 22, 29, 31, 32)<br>CN0: (GPS:)</i>]]></description>
+        <styleUrl>#dot</styleUrl>
+        <Point><coordinates>121.57973933, 31.20013517, 6.4</coordinates></Point>
+      </Placemark>
+      <Placemark>
+        <description><![CDATA[<i>Point #7<br>Time: 02:12:21<br>Time tag: 439942<br>Latitude: 31.20013900 deg<br>Longitude: 121.57973817 deg<br>Altitude: 10.50 m<br>Speed: 0.15 m/s (0 mi/hr, 1 km/hr)<br>Heading: 33.7 deg<br>Fix indicator: 3-D<br>Used SVs: 6 (GPS: 3, 14, 22, 29, 31, 32)<br>CN0: (GPS:)</i>]]></description>
+        <styleUrl>#dot</styleUrl>
+        <Point><coordinates>121.57973817, 31.20013900, 10.5</coordinates></Point>
+      </Placemark>
+      <Placemark>
+        <description><![CDATA[<i>Point #8<br>Time: 02:12:22<br>Time tag: 439943<br>Latitude: 31.20015267 deg<br>Longitude: 121.57974083 deg<br>Altitude: 14.60 m<br>Speed: 0.15 m/s (0 mi/hr, 1 km/hr)<br>Heading: 30.9 deg<br>Fix indicator: 3-D<br>Used SVs: 6 (GPS: 3, 14, 22, 29, 31, 32)<br>CN0: (GPS:)</i>]]></description>
+        <styleUrl>#dot</styleUrl>
+        <Point><coordinates>121.57974083, 31.20015267, 14.6</coordinates></Point>
+      </Placemark>
+      <Placemark>
+        <description><![CDATA[<i>Point #9<br>Time: 02:12:23<br>Time tag: 439944<br>Latitude: 31.20015933 deg<br>Longitude: 121.57973550 deg<br>Altitude: 16.80 m<br>Speed: 0.21 m/s (0 mi/hr, 1 km/hr)<br>Heading: 26.9 deg<br>Fix indicator: 3-D<br>Used SVs: 6 (GPS: 3, 14, 22, 29, 31, 32)<br>CN0: (GPS:)</i>]]></description>
+        <styleUrl>#dot</styleUrl>
+        <Point><coordinates>121.57973550, 31.20015933, 16.8</coordinates></Point>
+      </Placemark>
+      <Placemark>
+        <description><![CDATA[<i>Point #10<br>Time: 02:12:24<br>Time tag: 439945<br>Latitude: 31.20015900 deg<br>Longitude: 121.57972550 deg<br>Altitude: 17.90 m<br>Speed: 0.21 m/s (0 mi/hr, 1 km/hr)<br>Heading: 25.1 deg<br>Fix indicator: 3-D<br>Used SVs: 6 (GPS: 3, 14, 22, 29, 31, 32)<br>CN0: (GPS:)</i>]]></description>
+        <styleUrl>#dot</styleUrl>
+        <Point><coordinates>121.57972550, 31.20015900, 17.9</coordinates></Point>
+      </Placemark>
+      <Placemark>
+        <description><![CDATA[<i>Point #11<br>Time: 02:12:25<br>Time tag: 439946<br>Latitude: 31.20016167 deg<br>Longitude: 121.57972833 deg<br>Altitude: 17.50 m<br>Speed: 0.10 m/s (0 mi/hr, 0 km/hr)<br>Heading: 18.8 deg<br>Fix indicator: 3-D<br>Used SVs: 6 (GPS: 3, 14, 22, 29, 31, 32)<br>CN0: (GPS:)</i>]]></description>
+        <styleUrl>#dot</styleUrl>
+        <Point><coordinates>121.57972833, 31.20016167, 17.5</coordinates></Point>
+      </Placemark>
+      <Placemark>
+        <description><![CDATA[<i>Point #12<br>Time: 02:12:26<br>Time tag: 439947<br>Latitude: 31.20015633 deg<br>Longitude: 121.57973200 deg<br>Altitude: 17.10 m<br>Speed: 0.05 m/s (0 mi/hr, 0 km/hr)<br>Heading: 105.5 deg<br>Fix indicator: 3-D<br>Used SVs: 6 (GPS: 3, 14, 22, 29, 31, 32)<br>CN0: (GPS:)</i>]]></description>
+        <styleUrl>#dot</styleUrl>
+        <Point><coordinates>121.57973200, 31.20015633, 17.1</coordinates></Point>
+      </Placemark>
+      <Placemark>
+        <description><![CDATA[<i>Point #13<br>Time: 02:12:27<br>Time tag: 439948<br>Latitude: 31.20014267 deg<br>Longitude: 121.57973517 deg<br>Altitude: 16.80 m<br>Speed: 0.57 m/s (1 mi/hr, 2 km/hr)<br>Heading: 156.7 deg<br>Fix indicator: 3-D<br>Used SVs: 6 (GPS: 3, 14, 22, 29, 31, 32)<br>CN0: (GPS:)</i>]]></description>
+        <styleUrl>#dot</styleUrl>
+        <Point><coordinates>121.57973517, 31.20014267, 16.8</coordinates></Point>
+      </Placemark>
+      <Placemark>
+        <description><![CDATA[<i>Point #14<br>Time: 02:12:28<br>Time tag: 439949<br>Latitude: 31.20011800 deg<br>Longitude: 121.57973833 deg<br>Altitude: 16.60 m<br>Speed: 1.23 m/s (3 mi/hr, 4 km/hr)<br>Heading: 160.4 deg<br>Fix indicator: 3-D<br>Used SVs: 6 (GPS: 3, 14, 22, 29, 31, 32)<br>CN0: (GPS:)</i>]]></description>
+        <styleUrl>#dot</styleUrl>
+        <Point><coordinates>121.57973833, 31.20011800, 16.6</coordinates></Point>
+      </Placemark>
+      <Placemark>
+        <description><![CDATA[<i>Point #15<br>Time: 02:12:29<br>Time tag: 439950<br>Latitude: 31.20010083 deg<br>Longitude: 121.57974350 deg<br>Altitude: 17.40 m<br>Speed: 1.90 m/s (4 mi/hr, 7 km/hr)<br>Heading: 167.0 deg<br>Fix indicator: 3-D<br>Used SVs: 6 (GPS: 3, 14, 22, 29, 31, 32)<br>CN0: (GPS:)</i>]]></description>
+        <styleUrl>#dot</styleUrl>
+        <Point><coordinates>121.57974350, 31.20010083, 17.4</coordinates></Point>
+      </Placemark>
+      <Placemark>
+        <description><![CDATA[<i>Point #16<br>Time: 02:12:30<br>Time tag: 439951<br>Latitude: 31.20008133 deg<br>Longitude: 121.57974733 deg<br>Altitude: 18.10 m<br>Speed: 2.11 m/s (5 mi/hr, 8 km/hr)<br>Heading: 168.7 deg<br>Fix indicator: 3-D<br>Used SVs: 6 (GPS: 3, 14, 22, 29, 31, 32)<br>CN0: (GPS:)</i>]]></description>
+        <styleUrl>#dot</styleUrl>
+        <Point><coordinates>121.57974733, 31.20008133, 18.1</coordinates></Point>
+      </Placemark>
+      <Placemark>
+        <description><![CDATA[<i>Point #17<br>Time: 02:12:31<br>Time tag: 439952<br>Latitude: 31.20006467 deg<br>Longitude: 121.57975367 deg<br>Altitude: 18.40 m<br>Speed: 2.16 m/s (5 mi/hr, 8 km/hr)<br>Heading: 170.2 deg<br>Fix indicator: 3-D<br>Used SVs: 6 (GPS: 3, 14, 22, 29, 31, 32)<br>CN0: (GPS:)</i>]]></description>
+        <styleUrl>#dot</styleUrl>
+        <Point><coordinates>121.57975367, 31.20006467, 18.4</coordinates></Point>
+      </Placemark>
+      <Placemark>
+        <description><![CDATA[<i>Point #18<br>Time: 02:12:32<br>Time tag: 439953<br>Latitude: 31.20005200 deg<br>Longitude: 121.57976267 deg<br>Altitude: 18.40 m<br>Speed: 2.06 m/s (5 mi/hr, 7 km/hr)<br>Heading: 171.7 deg<br>Fix indicator: 3-D<br>Used SVs: 5 (GPS: 3, 14, 29, 31, 32)<br>CN0: (GPS:)</i>]]></description>
+        <styleUrl>#dot</styleUrl>
+        <Point><coordinates>121.57976267, 31.20005200, 18.4</coordinates></Point>
+      </Placemark>
+      <Placemark>
+        <description><![CDATA[<i>Point #19<br>Time: 02:12:33<br>Time tag: 439954<br>Latitude: 31.20003067 deg<br>Longitude: 121.57976117 deg<br>Altitude: 19.40 m<br>Speed: 1.95 m/s (4 mi/hr, 7 km/hr)<br>Heading: 171.8 deg<br>Fix indicator: 3-D<br>Used SVs: 6 (GPS: 3, 14, 25, 29, 31, 32)<br>CN0: (GPS:)</i>]]></description>
+        <styleUrl>#dot</styleUrl>
+        <Point><coordinates>121.57976117, 31.20003067, 19.4</coordinates></Point>
+      </Placemark>
+      <Placemark>
+        <description><![CDATA[<i>Point #20<br>Time: 02:12:34<br>Time tag: 439955<br>Latitude: 31.20000983 deg<br>Longitude: 121.57976000 deg<br>Altitude: 20.30 m<br>Speed: 1.85 m/s (4 mi/hr, 7 km/hr)<br>Heading: 172.2 deg<br>Fix indicator: 3-D<br>Used SVs: 6 (GPS: 3, 14, 25, 29, 31, 32)<br>CN0: (GPS:)</i>]]></description>
+        <styleUrl>#dot</styleUrl>
+        <Point><coordinates>121.57976000, 31.20000983, 20.3</coordinates></Point>
+      </Placemark>
+      <Placemark>
+        <description><![CDATA[<i>Point #21<br>Time: 02:12:35<br>Time tag: 439956<br>Latitude: 31.19999200 deg<br>Longitude: 121.57976217 deg<br>Altitude: 20.50 m<br>Speed: 1.75 m/s (4 mi/hr, 6 km/hr)<br>Heading: 171.7 deg<br>Fix indicator: 3-D<br>Used SVs: 6 (GPS: 3, 14, 25, 29, 31, 32)<br>CN0: (GPS:)</i>]]></description>
+        <styleUrl>#dot</styleUrl>
+        <Point><coordinates>121.57976217, 31.19999200, 20.5</coordinates></Point>
+      </Placemark>
+      <Placemark>
+        <description><![CDATA[<i>Point #22<br>Time: 02:12:36<br>Time tag: 439957<br>Latitude: 31.19997367 deg<br>Longitude: 121.57976283 deg<br>Altitude: 20.90 m<br>Speed: 1.70 m/s (4 mi/hr, 6 km/hr)<br>Heading: 172.5 deg<br>Fix indicator: 3-D<br>Used SVs: 6 (GPS: 3, 14, 25, 29, 31, 32)<br>CN0: (GPS:)</i>]]></description>
+        <styleUrl>#dot</styleUrl>
+        <Point><coordinates>121.57976283, 31.19997367, 20.9</coordinates></Point>
+      </Placemark>
+      <Placemark>
+        <description><![CDATA[<i>Point #23<br>Time: 02:12:37<br>Time tag: 439958<br>Latitude: 31.19995733 deg<br>Longitude: 121.57976467 deg<br>Altitude: 21.20 m<br>Speed: 1.70 m/s (4 mi/hr, 6 km/hr)<br>Heading: 173.1 deg<br>Fix indicator: 3-D<br>Used SVs: 6 (GPS: 3, 14, 25, 29, 31, 32)<br>CN0: (GPS:)</i>]]></description>
+        <styleUrl>#dot</styleUrl>
+        <Point><coordinates>121.57976467, 31.19995733, 21.2</coordinates></Point>
+      </Placemark>
+      <Placemark>
+        <description><![CDATA[<i>Point #24<br>Time: 02:12:38<br>Time tag: 439959<br>Latitude: 31.19994217 deg<br>Longitude: 121.57976967 deg<br>Altitude: 21.00 m<br>Speed: 1.65 m/s (4 mi/hr, 6 km/hr)<br>Heading: 173.4 deg<br>Fix indicator: 3-D<br>Used SVs: 6 (GPS: 3, 14, 25, 29, 31, 32)<br>CN0: (GPS:)</i>]]></description>
+        <styleUrl>#dot</styleUrl>
+        <Point><coordinates>121.57976967, 31.19994217, 21.0</coordinates></Point>
+      </Placemark>
+      <Placemark>
+        <description><![CDATA[<i>Point #25<br>Time: 02:12:39<br>Time tag: 439960<br>Latitude: 31.19992583 deg<br>Longitude: 121.57976917 deg<br>Altitude: 21.20 m<br>Speed: 1.70 m/s (4 mi/hr, 6 km/hr)<br>Heading: 172.8 deg<br>Fix indicator: 3-D<br>Used SVs: 5 (GPS: 14, 25, 29, 31, 32)<br>CN0: (GPS:)</i>]]></description>
+        <styleUrl>#dot</styleUrl>
+        <Point><coordinates>121.57976917, 31.19992583, 21.2</coordinates></Point>
+      </Placemark>
+      <Placemark>
+        <description><![CDATA[<i>Point #26<br>Time: 02:12:40<br>Time tag: 439961<br>Latitude: 31.19990767 deg<br>Longitude: 121.57977033 deg<br>Altitude: 21.70 m<br>Speed: 1.70 m/s (4 mi/hr, 6 km/hr)<br>Heading: 173.7 deg<br>Fix indicator: 3-D<br>Used SVs: 5 (GPS: 14, 25, 29, 31, 32)<br>CN0: (GPS:)</i>]]></description>
+        <styleUrl>#dot</styleUrl>
+        <Point><coordinates>121.57977033, 31.19990767, 21.7</coordinates></Point>
+      </Placemark>
+      <Placemark>
+        <description><![CDATA[<i>Point #27<br>Time: 02:12:41<br>Time tag: 439962<br>Latitude: 31.19988833 deg<br>Longitude: 121.57977583 deg<br>Altitude: 22.30 m<br>Speed: 1.75 m/s (4 mi/hr, 6 km/hr)<br>Heading: 172.6 deg<br>Fix indicator: 3-D<br>Used SVs: 5 (GPS: 14, 25, 29, 31, 32)<br>CN0: (GPS:)</i>]]></description>
+        <styleUrl>#dot</styleUrl>
+        <Point><coordinates>121.57977583, 31.19988833, 22.3</coordinates></Point>
+      </Placemark>
+      <Placemark>
+        <description><![CDATA[<i>Point #28<br>Time: 02:12:42<br>Time tag: 439963<br>Latitude: 31.19986850 deg<br>Longitude: 121.57977433 deg<br>Altitude: 22.70 m<br>Speed: 1.80 m/s (4 mi/hr, 6 km/hr)<br>Heading: 169.1 deg<br>Fix indicator: 3-D<br>Used SVs: 5 (GPS: 14, 25, 29, 31, 32)<br>CN0: (GPS:)</i>]]></description>
+        <styleUrl>#dot</styleUrl>
+        <Point><coordinates>121.57977433, 31.19986850, 22.7</coordinates></Point>
+      </Placemark>
+      <Placemark>
+        <description><![CDATA[<i>Point #29<br>Time: 02:12:43<br>Time tag: 439964<br>Latitude: 31.19985167 deg<br>Longitude: 121.57977217 deg<br>Altitude: 23.20 m<br>Speed: 1.80 m/s (4 mi/hr, 6 km/hr)<br>Heading: 169.7 deg<br>Fix indicator: 3-D<br>Used SVs: 5 (GPS: 14, 25, 29, 31, 32)<br>CN0: (GPS:)</i>]]></description>
+        <styleUrl>#dot</styleUrl>
+        <Point><coordinates>121.57977217, 31.19985167, 23.2</coordinates></Point>
+      </Placemark>
+      <Placemark>
+        <description><![CDATA[<i>Point #30<br>Time: 02:12:44<br>Time tag: 439965<br>Latitude: 31.19983683 deg<br>Longitude: 121.57977500 deg<br>Altitude: 23.20 m<br>Speed: 1.70 m/s (4 mi/hr, 6 km/hr)<br>Heading: 169.7 deg<br>Fix indicator: 3-D<br>Used SVs: 5 (GPS: 14, 25, 29, 31, 32)<br>CN0: (GPS:)</i>]]></description>
+        <styleUrl>#dot</styleUrl>
+        <Point><coordinates>121.57977500, 31.19983683, 23.2</coordinates></Point>
+      </Placemark>
+      <Placemark>
+        <description><![CDATA[<i>Point #31<br>Time: 02:12:45<br>Time tag: 439966<br>Latitude: 31.19982217 deg<br>Longitude: 121.57977483 deg<br>Altitude: 23.00 m<br>Speed: 1.70 m/s (4 mi/hr, 6 km/hr)<br>Heading: 169.7 deg<br>Fix indicator: 3-D<br>Used SVs: 5 (GPS: 14, 25, 29, 31, 32)<br>CN0: (GPS:)</i>]]></description>
+        <styleUrl>#dot</styleUrl>
+        <Point><coordinates>121.57977483, 31.19982217, 23.0</coordinates></Point>
+      </Placemark>
+      <Placemark>
+        <description><![CDATA[<i>Point #32<br>Time: 02:12:46<br>Time tag: 439967<br>Latitude: 31.19980617 deg<br>Longitude: 121.57977433 deg<br>Altitude: 23.40 m<br>Speed: 1.65 m/s (4 mi/hr, 6 km/hr)<br>Heading: 170.3 deg<br>Fix indicator: 3-D<br>Used SVs: 5 (GPS: 14, 25, 29, 31, 32)<br>CN0: (GPS:)</i>]]></description>
+        <styleUrl>#dot</styleUrl>
+        <Point><coordinates>121.57977433, 31.19980617, 23.4</coordinates></Point>
+      </Placemark>
+      <Placemark>
+        <description><![CDATA[<i>Point #33<br>Time: 02:12:47<br>Time tag: 439968<br>Latitude: 31.19979033 deg<br>Longitude: 121.57978017 deg<br>Altitude: 23.80 m<br>Speed: 1.65 m/s (4 mi/hr, 6 km/hr)<br>Heading: 170.3 deg<br>Fix indicator: 3-D<br>Used SVs: 5 (GPS: 14, 25, 29, 31, 32)<br>CN0: (GPS:)</i>]]></description>
+        <styleUrl>#dot</styleUrl>
+        <Point><coordinates>121.57978017, 31.19979033, 23.8</coordinates></Point>
+      </Placemark>
+      <Placemark>
+        <description><![CDATA[<i>Point #34<br>Time: 02:12:48<br>Time tag: 439969<br>Latitude: 31.19977350 deg<br>Longitude: 121.57979033 deg<br>Altitude: 24.20 m<br>Speed: 1.65 m/s (4 mi/hr, 6 km/hr)<br>Heading: 167.2 deg<br>Fix indicator: 3-D<br>Used SVs: 6 (GPS: 3, 14, 25, 29, 31, 32)<br>CN0: (GPS:)</i>]]></description>
+        <styleUrl>#dot</styleUrl>
+        <Point><coordinates>121.57979033, 31.19977350, 24.2</coordinates></Point>
+      </Placemark>
+      <Placemark>
+        <description><![CDATA[<i>Point #35<br>Time: 02:12:49<br>Time tag: 439970<br>Latitude: 31.19976150 deg<br>Longitude: 121.57979717 deg<br>Altitude: 25.50 m<br>Speed: 1.70 m/s (4 mi/hr, 6 km/hr)<br>Heading: 164.6 deg<br>Fix indicator: 3-D<br>Used SVs: 5 (GPS: 14, 25, 29, 31, 32)<br>CN0: (GPS:)</i>]]></description>
+        <styleUrl>#dot</styleUrl>
+        <Point><coordinates>121.57979717, 31.19976150, 25.5</coordinates></Point>
+      </Placemark>
+      <Placemark>
+        <description><![CDATA[<i>Point #36<br>Time: 02:12:50<br>Time tag: 439971<br>Latitude: 31.19974733 deg<br>Longitude: 121.57980067 deg<br>Altitude: 26.40 m<br>Speed: 1.70 m/s (4 mi/hr, 6 km/hr)<br>Heading: 165.5 deg<br>Fix indicator: 3-D<br>Used SVs: 5 (GPS: 14, 25, 29, 31, 32)<br>CN0: (GPS:)</i>]]></description>
+        <styleUrl>#dot</styleUrl>
+        <Point><coordinates>121.57980067, 31.19974733, 26.4</coordinates></Point>
+      </Placemark>
+      <Placemark>
+        <description><![CDATA[<i>Point #37<br>Time: 02:12:51<br>Time tag: 439972<br>Latitude: 31.19973350 deg<br>Longitude: 121.57980500 deg<br>Altitude: 27.00 m<br>Speed: 1.70 m/s (4 mi/hr, 6 km/hr)<br>Heading: 167.0 deg<br>Fix indicator: 3-D<br>Used SVs: 5 (GPS: 14, 25, 29, 31, 32)<br>CN0: (GPS:)</i>]]></description>
+        <styleUrl>#dot</styleUrl>
+        <Point><coordinates>121.57980500, 31.19973350, 27.0</coordinates></Point>
+      </Placemark>
+      <Placemark>
+        <description><![CDATA[<i>Point #38<br>Time: 02:12:52<br>Time tag: 439973<br>Latitude: 31.19971700 deg<br>Longitude: 121.57980600 deg<br>Altitude: 27.20 m<br>Speed: 1.70 m/s (4 mi/hr, 6 km/hr)<br>Heading: 168.0 deg<br>Fix indicator: 3-D<br>Used SVs: 5 (GPS: 14, 25, 29, 31, 32)<br>CN0: (GPS:)</i>]]></description>
+        <styleUrl>#dot</styleUrl>
+        <Point><coordinates>121.57980600, 31.19971700, 27.2</coordinates></Point>
+      </Placemark>
+      <Placemark>
+        <description><![CDATA[<i>Point #39<br>Time: 02:12:53<br>Time tag: 439974<br>Latitude: 31.19969967 deg<br>Longitude: 121.57980983 deg<br>Altitude: 27.60 m<br>Speed: 1.75 m/s (4 mi/hr, 6 km/hr)<br>Heading: 170.2 deg<br>Fix indicator: 3-D<br>Used SVs: 5 (GPS: 14, 25, 29, 31, 32)<br>CN0: (GPS:)</i>]]></description>
+        <styleUrl>#dot</styleUrl>
+        <Point><coordinates>121.57980983, 31.19969967, 27.6</coordinates></Point>
+      </Placemark>
+      <Placemark>
+        <description><![CDATA[<i>Point #40<br>Time: 02:12:54<br>Time tag: 439975<br>Latitude: 31.19968300 deg<br>Longitude: 121.57980900 deg<br>Altitude: 27.50 m<br>Speed: 1.75 m/s (4 mi/hr, 6 km/hr)<br>Heading: 170.1 deg<br>Fix indicator: 3-D<br>Used SVs: 5 (GPS: 14, 25, 29, 31, 32)<br>CN0: (GPS:)</i>]]></description>
+        <styleUrl>#dot</styleUrl>
+        <Point><coordinates>121.57980900, 31.19968300, 27.5</coordinates></Point>
+      </Placemark>
+      <Placemark>
+        <description><![CDATA[<i>Point #41<br>Time: 02:12:55<br>Time tag: 439976<br>Latitude: 31.19966467 deg<br>Longitude: 121.57981417 deg<br>Altitude: 28.20 m<br>Speed: 1.75 m/s (4 mi/hr, 6 km/hr)<br>Heading: 170.7 deg<br>Fix indicator: 3-D<br>Used SVs: 5 (GPS: 14, 25, 29, 31, 32)<br>CN0: (GPS:)</i>]]></description>
+        <styleUrl>#dot</styleUrl>
+        <Point><coordinates>121.57981417, 31.19966467, 28.2</coordinates></Point>
+      </Placemark>
+      <Placemark>
+        <description><![CDATA[<i>Point #42<br>Time: 02:12:56<br>Time tag: 439977<br>Latitude: 31.19964767 deg<br>Longitude: 121.57982200 deg<br>Altitude: 28.60 m<br>Speed: 1.75 m/s (4 mi/hr, 6 km/hr)<br>Heading: 169.0 deg<br>Fix indicator: 3-D<br>Used SVs: 5 (GPS: 14, 25, 29, 31, 32)<br>CN0: (GPS:)</i>]]></description>
+        <styleUrl>#dot</styleUrl>
+        <Point><coordinates>121.57982200, 31.19964767, 28.6</coordinates></Point>
+      </Placemark>
+      <Placemark>
+        <description><![CDATA[<i>Point #43<br>Time: 02:12:57<br>Time tag: 439978<br>Latitude: 31.19963083 deg<br>Longitude: 121.57983417 deg<br>Altitude: 28.20 m<br>Speed: 1.75 m/s (4 mi/hr, 6 km/hr)<br>Heading: 167.8 deg<br>Fix indicator: 3-D<br>Used SVs: 5 (GPS: 14, 25, 29, 31, 32)<br>CN0: (GPS:)</i>]]></description>
+        <styleUrl>#dot</styleUrl>
+        <Point><coordinates>121.57983417, 31.19963083, 28.2</coordinates></Point>
+      </Placemark>
+      <Placemark>
+        <description><![CDATA[<i>Point #44<br>Time: 02:12:58<br>Time tag: 439979<br>Latitude: 31.19961617 deg<br>Longitude: 121.57983667 deg<br>Altitude: 27.50 m<br>Speed: 1.75 m/s (4 mi/hr, 6 km/hr)<br>Heading: 165.6 deg<br>Fix indicator: 3-D<br>Used SVs: 5 (GPS: 14, 25, 29, 31, 32)<br>CN0: (GPS:)</i>]]></description>
+        <styleUrl>#dot</styleUrl>
+        <Point><coordinates>121.57983667, 31.19961617, 27.5</coordinates></Point>
+      </Placemark>
+      <Placemark>
+        <description><![CDATA[<i>Point #45<br>Time: 02:12:59<br>Time tag: 439980<br>Latitude: 31.19960267 deg<br>Longitude: 121.57984017 deg<br>Altitude: 26.90 m<br>Speed: 1.65 m/s (4 mi/hr, 6 km/hr)<br>Heading: 168.9 deg<br>Fix indicator: 3-D<br>Used SVs: 5 (GPS: 14, 25, 29, 31, 32)<br>CN0: (GPS:)</i>]]></description>
+        <styleUrl>#dot</styleUrl>
+        <Point><coordinates>121.57984017, 31.19960267, 26.9</coordinates></Point>
+      </Placemark>
+      <Placemark>
+        <description><![CDATA[<i>Point #46<br>Time: 02:13:00<br>Time tag: 439981<br>Latitude: 31.19959000 deg<br>Longitude: 121.57984483 deg<br>Altitude: 26.00 m<br>Speed: 1.65 m/s (4 mi/hr, 6 km/hr)<br>Heading: 168.9 deg<br>Fix indicator: 3-D<br>Used SVs: 5 (GPS: 14, 25, 29, 31, 32)<br>CN0: (GPS:)</i>]]></description>
+        <styleUrl>#dot</styleUrl>
+        <Point><coordinates>121.57984483, 31.19959000, 26.0</coordinates></Point>
+      </Placemark>
+      <Placemark>
+        <description><![CDATA[<i>Point #47<br>Time: 02:13:01<br>Time tag: 439982<br>Latitude: 31.19957533 deg<br>Longitude: 121.57984667 deg<br>Altitude: 25.70 m<br>Speed: 1.59 m/s (4 mi/hr, 6 km/hr)<br>Heading: 169.7 deg<br>Fix indicator: 3-D<br>Used SVs: 5 (GPS: 14, 25, 29, 31, 32)<br>CN0: (GPS:)</i>]]></description>
+        <styleUrl>#dot</styleUrl>
+        <Point><coordinates>121.57984667, 31.19957533, 25.7</coordinates></Point>
+      </Placemark>
+      <Placemark>
+        <description><![CDATA[<i>Point #48<br>Time: 02:13:02<br>Time tag: 439983<br>Latitude: 31.19956100 deg<br>Longitude: 121.57984967 deg<br>Altitude: 25.60 m<br>Speed: 1.65 m/s (4 mi/hr, 6 km/hr)<br>Heading: 172.1 deg<br>Fix indicator: 3-D<br>Used SVs: 5 (GPS: 14, 25, 29, 31, 32)<br>CN0: (GPS:)</i>]]></description>
+        <styleUrl>#dot</styleUrl>
+        <Point><coordinates>121.57984967, 31.19956100, 25.6</coordinates></Point>
+      </Placemark>
+      <Placemark>
+        <description><![CDATA[<i>Point #49<br>Time: 02:13:03<br>Time tag: 439984<br>Latitude: 31.19954467 deg<br>Longitude: 121.57985300 deg<br>Altitude: 26.10 m<br>Speed: 1.65 m/s (4 mi/hr, 6 km/hr)<br>Heading: 173.2 deg<br>Fix indicator: 3-D<br>Used SVs: 5 (GPS: 14, 25, 29, 31, 32)<br>CN0: (GPS:)</i>]]></description>
+        <styleUrl>#dot</styleUrl>
+        <Point><coordinates>121.57985300, 31.19954467, 26.1</coordinates></Point>
+      </Placemark>
+      <Placemark>
+        <description><![CDATA[<i>Point #50<br>Time: 02:13:04<br>Time tag: 439985<br>Latitude: 31.19952533 deg<br>Longitude: 121.57985550 deg<br>Altitude: 27.00 m<br>Speed: 1.70 m/s (4 mi/hr, 6 km/hr)<br>Heading: 172.4 deg<br>Fix indicator: 3-D<br>Used SVs: 5 (GPS: 14, 25, 29, 31, 32)<br>CN0: (GPS:)</i>]]></description>
+        <styleUrl>#dot</styleUrl>
+        <Point><coordinates>121.57985550, 31.19952533, 27.0</coordinates></Point>
+      </Placemark>
+      <Placemark>
+        <description><![CDATA[<i>Point #51<br>Time: 02:13:05<br>Time tag: 439986<br>Latitude: 31.19950533 deg<br>Longitude: 121.57985750 deg<br>Altitude: 28.20 m<br>Speed: 1.75 m/s (4 mi/hr, 6 km/hr)<br>Heading: 171.4 deg<br>Fix indicator: 3-D<br>Used SVs: 5 (GPS: 14, 25, 29, 31, 32)<br>CN0: (GPS:)</i>]]></description>
+        <styleUrl>#dot</styleUrl>
+        <Point><coordinates>121.57985750, 31.19950533, 28.2</coordinates></Point>
+      </Placemark>
+      <Placemark>
+        <description><![CDATA[<i>Point #52<br>Time: 02:13:06<br>Time tag: 439987<br>Latitude: 31.19948900 deg<br>Longitude: 121.57985683 deg<br>Altitude: 28.10 m<br>Speed: 1.80 m/s (4 mi/hr, 6 km/hr)<br>Heading: 171.9 deg<br>Fix indicator: 3-D<br>Used SVs: 5 (GPS: 14, 25, 29, 31, 32)<br>CN0: (GPS:)</i>]]></description>
+        <styleUrl>#dot</styleUrl>
+        <Point><coordinates>121.57985683, 31.19948900, 28.1</coordinates></Point>
+      </Placemark>
+      <Placemark>
+        <description><![CDATA[<i>Point #53<br>Time: 02:13:07<br>Time tag: 439988<br>Latitude: 31.19947083 deg<br>Longitude: 121.57985583 deg<br>Altitude: 28.60 m<br>Speed: 1.75 m/s (4 mi/hr, 6 km/hr)<br>Heading: 173.4 deg<br>Fix indicator: 3-D<br>Used SVs: 5 (GPS: 14, 25, 29, 31, 32)<br>CN0: (GPS:)</i>]]></description>
+        <styleUrl>#dot</styleUrl>
+        <Point><coordinates>121.57985583, 31.19947083, 28.6</coordinates></Point>
+      </Placemark>
+      <Placemark>
+        <description><![CDATA[<i>Point #54<br>Time: 02:13:08<br>Time tag: 439989<br>Latitude: 31.19945283 deg<br>Longitude: 121.57985667 deg<br>Altitude: 29.20 m<br>Speed: 1.70 m/s (4 mi/hr, 6 km/hr)<br>Heading: 173.9 deg<br>Fix indicator: 3-D<br>Used SVs: 5 (GPS: 14, 25, 29, 31, 32)<br>CN0: (GPS:)</i>]]></description>
+        <styleUrl>#dot</styleUrl>
+        <Point><coordinates>121.57985667, 31.19945283, 29.2</coordinates></Point>
+      </Placemark>
+      <Placemark>
+        <description><![CDATA[<i>Point #55<br>Time: 02:13:09<br>Time tag: 439990<br>Latitude: 31.19943317 deg<br>Longitude: 121.57984817 deg<br>Altitude: 30.30 m<br>Speed: 1.70 m/s (4 mi/hr, 6 km/hr)<br>Heading: 174.5 deg<br>Fix indicator: 3-D<br>Used SVs: 6 (GPS: 3, 14, 25, 29, 31, 32)<br>CN0: (GPS:)</i>]]></description>
+        <styleUrl>#dot</styleUrl>
+        <Point><coordinates>121.57984817, 31.19943317, 30.3</coordinates></Point>
+      </Placemark>
+      <Placemark>
+        <description><![CDATA[<i>Point #56<br>Time: 02:13:10<br>Time tag: 439991<br>Latitude: 31.19941417 deg<br>Longitude: 121.57984017 deg<br>Altitude: 31.50 m<br>Speed: 1.70 m/s (4 mi/hr, 6 km/hr)<br>Heading: 179.1 deg<br>Fix indicator: 3-D<br>Used SVs: 6 (GPS: 14, 22, 25, 29, 31, 32)<br>CN0: (GPS:)</i>]]></description>
+        <styleUrl>#dot</styleUrl>
+        <Point><coordinates>121.57984017, 31.19941417, 31.5</coordinates></Point>
+      </Placemark>
+      <Placemark>
+        <description><![CDATA[<i>Point #57<br>Time: 02:13:11<br>Time tag: 439992<br>Latitude: 31.19939833 deg<br>Longitude: 121.57983650 deg<br>Altitude: 32.20 m<br>Speed: 1.70 m/s (4 mi/hr, 6 km/hr)<br>Heading: 180.0 deg<br>Fix indicator: 3-D<br>Used SVs: 5 (GPS: 14, 25, 29, 31, 32)<br>CN0: (GPS:)</i>]]></description>
+        <styleUrl>#dot</styleUrl>
+        <Point><coordinates>121.57983650, 31.19939833, 32.2</coordinates></Point>
+      </Placemark>
+    </Folder>
+  </Document>
+</kml>
