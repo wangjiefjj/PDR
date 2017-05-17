@@ -91,6 +91,8 @@ hold on;
 plot(acc_det_energy, 'b');
 legend('acc det std', 'acc det energy');
 title('accelerometer data energy and standard deviation');
+xlabel('Time (unit:3 seconds)')
+ylabel('Y(t)')
 end
 
 if 1
