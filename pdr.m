@@ -17,7 +17,7 @@ SENSOR = 1;
 %% configure
 
 SampleRate = 50;   % Hz
-AlignmentTime = 2; % second
+AlignmentTime = 5; % second
 MagCalibrationTime = 10;   % second
 
 %% prepare data for mag calibration & initial alignment
@@ -46,7 +46,7 @@ end
 % mag_calibrated = inv(W)*(mag_raw - V)
 N = SampleRate*MagCalibrationTime;
 [Cali_B, Cali_V, Cali_W_inv, Cali_Error] = cali7eig(Mag(1:N, :));
-if Cali_Error < 0.15
+if Cali_Error < 0.05
     mag_calibration = 1;
 else
     mag_calibration = 0;
@@ -123,9 +123,6 @@ end
 
 Ge = 9.80665;
 G_vector = [0, 0, Ge]';
-yaw = zeros(N, 1);
-pitch = zeros(N, 1);
-roll = zeros(N, 1);
 gyro_bias = zeros(3, 1);
 acc_bias = zeros(3, 1);
 mag_jamming = zeros(3, 1);
@@ -192,6 +189,9 @@ esqu = 0.00669437999013;
 %% pdr variable
 step_start_flag = 0;
 
+%% pdr gnss fusion variable
+pdr_p = diag([0.001, 0.001, 1]);
+
 %% step length variable
 step_adjust_window = 10;
 step_adjust_count = 0;
@@ -214,7 +214,9 @@ for i = M:length(data)
         gnss_latitude = data(i, 3);
         gnss_longitude = data(i, 4);
         gnss_altitude = data(i, 5);
-        gnss_heading(gnss_count) = data(i, 9);
+        gnss_vel = data(i, 6:8);
+        gnss_heading = data(i, 9);
+        gnss_heading_array(gnss_count) = data(i, 9);
         if gnss_count == 1
             q = euler2q(yaw_initial, pitch_initial, roll_initial);
             qlpf = q;
@@ -359,8 +361,8 @@ for i = M:length(data)
                 P = (I - K*H)*P;
                 [deltaCbn] = euler2dcm (x(3), x(2), x(1)); % (I+P)Cbn
                 Cbn = deltaCbn*Cbn;
-                [yaw(i), pitch(i), roll(i)] = dcm2euler(Cbn);   % gyro + acc + mag estimation
-                q = euler2q(yaw(i), pitch(i), roll(i));
+                [yaw, pitch, roll] = dcm2euler(Cbn);   % gyro + acc + mag estimation
+                q = euler2q(yaw, pitch, roll);
                 q = q_norm(q);
 
                 % mag vector correction
@@ -453,8 +455,40 @@ for i = M:length(data)
             end
             heading_smooth_count = heading_smooth_count + 1;
             
+            %% PDR and GNSS fusion
+            if 1
+            gnss_vel_det = norm(gnss_vel);
+            if gnss_vel_det > 1 && step_count > 0
+                pdr_x = [pdr_latitude; pdr_longitude; yaw];
+                pdr_phim = eye(3, 3);
+                pdr_q = diag([0.001, 0.001, 10]);
+
+                % predict
+                pdr_x = pdr_phim*pdr_x;
+                pdr_p = pdr_phim*pdr_p*pdr_phim' + pdr_q;
+
+                % update from gnss
+                pdr_z = [gnss_latitude; gnss_longitude; gnss_heading];
+                pdr_h = eye(3, 3);
+                pdr_r = diag([0.1, 0.1, 10]);
+                pdr_i = eye(3, 3);
+                pdr_k = pdr_p*pdr_h'*((pdr_h*pdr_p*pdr_h'+pdr_r)^-1);
+                pdr_x = pdr_x + pdr_k*(pdr_z - pdr_h*pdr_x);
+                pdr_p = (pdr_i - pdr_k*pdr_h)*pdr_p;
+
+                pdr_latitude = pdr_x(1);
+                pdr_longitude = pdr_x(2);
+                yaw = pdr_x(3);
+                
+                pdr_latitude_array(step_count) = pdr_latitude*180/pi;
+                pdr_longitude_array(step_count) = pdr_longitude*180/pi;
+                pdr_altitude_array(step_count) = pdr_altitude;
+            end
+            end
+            
             % restore the heading result
             sensor_heading_9D(gnss_count) = yaw;
+
         else
             if gnss_count ~= 1
                 % lost sensor data
@@ -586,7 +620,7 @@ for i = M:length(data)
                 pre_step_det = step_det;
             end
             
-            %% PDR estimate latitude and longitude 
+            %% PDR estimate latitude and longitude
             if step_detect_flag ~= 0
                 step_detect_flag = 0;
                 step_heading = yaw;
@@ -625,7 +659,7 @@ ylabel('Y(t)')
 end
 
 figure;
-plot(gnss_heading*180/pi, 'r');
+plot(gnss_heading_array*180/pi, 'r');
 hold on;
 plot(sensor_heading_9D*180/pi, 'g');
 plot(sensor_heading_6D*180/pi, 'b');
