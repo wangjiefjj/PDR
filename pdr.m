@@ -190,7 +190,7 @@ esqu = 0.00669437999013;
 step_start_flag = 0;
 
 %% pdr gnss fusion variable
-pdr_p = diag([0.001, 0.001, 1]);
+pdr_p = diag([0.1, 0.1, 1]);
 
 %% step length variable
 step_adjust_window = 10;
@@ -459,26 +459,46 @@ for i = M:length(data)
             if 1
             gnss_vel_det = norm(gnss_vel);
             if gnss_vel_det > 1 && step_count > 0
-                pdr_x = [pdr_latitude; pdr_longitude; yaw];
+                pdr_x = zeros(3, 1);
                 pdr_phim = eye(3, 3);
-                pdr_q = diag([0.001, 0.001, 10]);
+                sigma_q = [1, 1, 10/180*pi];
+                pdr_q = diag(sigma_q.^2);
 
                 % predict
                 pdr_x = pdr_phim*pdr_x;
                 pdr_p = pdr_phim*pdr_p*pdr_phim' + pdr_q;
 
                 % update from gnss
-                pdr_z = [gnss_latitude; gnss_longitude; gnss_heading];
+                gnss_N = gnss_latitude * RM;
+                gnss_E = gnss_longitude * RN;
+                pdr_N = pdr_latitude * RM;
+                pdr_E = pdr_longitude * RN;
+                if gnss_heading - yaw > pi
+                    gnss_heading = gnss_heading - 2*pi;
+                end
+                if gnss_heading - yaw < -pi
+                    gnss_headng = gnss_heading + 2*pi;
+                end
+                pdr_z = [gnss_N - pdr_N; gnss_E - pdr_E; gnss_heading - yaw];
                 pdr_h = eye(3, 3);
-                pdr_r = diag([0.1, 0.1, 10]);
+                sigma_r = [10, 10, 2/180*pi];
+                pdr_r = diag(sigma_r.^2);
                 pdr_i = eye(3, 3);
                 pdr_k = pdr_p*pdr_h'*((pdr_h*pdr_p*pdr_h'+pdr_r)^-1);
                 pdr_x = pdr_x + pdr_k*(pdr_z - pdr_h*pdr_x);
                 pdr_p = (pdr_i - pdr_k*pdr_h)*pdr_p;
 
-                pdr_latitude = pdr_x(1);
-                pdr_longitude = pdr_x(2);
-                yaw = pdr_x(3);
+                pdr_N = pdr_N + pdr_x(1);
+                pdr_latitude = pdr_N / RM;
+                pdr_E = pdr_E + pdr_x(2);
+                pdr_longitude = pdr_E / RN;
+                yaw = yaw + pdr_x(3);
+                if yaw > pi
+                    yaw = yaw - 2*pi;
+                end
+                if yaw < -pi
+                    yaw = yaw + 2*pi;
+                end
                 
                 pdr_latitude_array(step_count) = pdr_latitude*180/pi;
                 pdr_longitude_array(step_count) = pdr_longitude*180/pi;
