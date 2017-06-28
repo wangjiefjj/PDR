@@ -135,7 +135,7 @@ MeasNumM = 3;
 x = zeros(StateNum, 1); % roll, pitch, yaw, gyro_bias_x, gyro_bias_y, gyro_bias_z, acc_bias_x, acc_bias_y, acc_bias_z, mag_jamming_x, mag_jamming_y, mag_jamming_z
 Corr_time_gyro = 1;
 Corr_time_acc = 1;
-Corr_time_mag = 10;
+Corr_time_mag = 1;
 sigma_Win = 1.0e-6;
 sigma_gyro_1 = (2*pi/180/3600)^2;   % Markov process
 sigma_gyro_2 = (10*pi/180/3600)^2;   % Random walk
@@ -190,7 +190,8 @@ esqu = 0.00669437999013;
 step_start_flag = 0;
 
 %% pdr gnss fusion variable
-pdr_p = diag([0.1, 0.1, 1]);
+sigma_p = [0.1, 0.1, 10];
+pdr_p = diag(sigma_p);
 
 %% step length variable
 step_adjust_window = 10;
@@ -343,9 +344,9 @@ for i = M:length(data)
             H(3, 12) = -Cbn(3, 3);
 
             R = eye(3, 3);
-            R(1, 1) = 1^2;
-            R(2, 2) = 1^2;
-            R(3, 3) = 1^2;
+            R(1, 1) = 20^2;
+            R(2, 2) = 20^2;
+            R(3, 3) = 20^2;
 
             mag_estimate = Cbn*Mag';
             Z = Mag_vector - mag_estimate;
@@ -404,26 +405,6 @@ for i = M:length(data)
             x(1:StateNum) = 0;
             end
             
-            if 0
-            % low pass filter for quaternion
-            % set low pass filter constant with maximum value 1.0 (all pass) decreasing to 0.0 (increasing low pass)
-            lpf_time = 1;   % time constant (second)
-            flpf = dt/lpf_time;
-            deltaq = qconjgAxB(qlpf, q);
-            if deltaq(1) < 0
-                deltaq = -deltaq;
-            end
-            ftemp = flpf + (1-flpf)*(1-deltaq(1));
-            deltaq = ftemp*deltaq;
-            deltaq(1) = sqrt(1 - norm(deltaq(2:4))^2);
-            qlpf = qAxB(qlpf, deltaq);
-            qlpf = q_norm(qlpf);
-            % convert to euler
-            Cbn = q2dcm(qlpf);
-            [yaw, ~, ~] = dcm2euler(Cbn);
-            q = qlpf;
-            end
-            
             % heading smooth
             if heading_smooth_count > heading_smooth_number
                 for j = 1 : heading_smooth_number - 1
@@ -461,7 +442,7 @@ for i = M:length(data)
             if gnss_vel_det > 1 && step_count > 0
                 pdr_x = zeros(3, 1);
                 pdr_phim = eye(3, 3);
-                sigma_q = [1, 1, 10/180*pi];
+                sigma_q = [0.2, 0.2, 10/180*pi];
                 pdr_q = diag(sigma_q.^2);
 
                 % predict
@@ -481,7 +462,7 @@ for i = M:length(data)
                 end
                 pdr_z = [gnss_N - pdr_N; gnss_E - pdr_E; gnss_heading - yaw];
                 pdr_h = eye(3, 3);
-                sigma_r = [10, 10, 2/180*pi];
+                sigma_r = [15, 15, 1/180*pi];
                 pdr_r = diag(sigma_r.^2);
                 pdr_i = eye(3, 3);
                 pdr_k = pdr_p*pdr_h'*((pdr_h*pdr_p*pdr_h'+pdr_r)^-1);
@@ -500,6 +481,9 @@ for i = M:length(data)
                     yaw = yaw + 2*pi;
                 end
                 
+                [yaw, pitch, roll] = dcm2euler(Cbn);
+                q = euler2q(yaw, pitch, roll);
+                q = q_norm(q);
                 pdr_latitude_array(step_count) = pdr_latitude*180/pi;
                 pdr_longitude_array(step_count) = pdr_longitude*180/pi;
                 pdr_altitude_array(step_count) = pdr_altitude;
@@ -554,12 +538,6 @@ for i = M:length(data)
         Wipp = Wiep + Wepp;
         Wipb = Cnb * Wipp;
         Wpbb = Gyro' - gyro_bias - Wipb;
-        
-        for j = 1:3
-            if abs(Wpbb(j)) < 30 / 180 * pi
-                Wpbb(j) = 0;
-            end
-        end
 
         dq = zeros(4, 1);
         dq(1) = -(Wpbb(1)*q(2) + Wpbb(2)*q(3) + Wpbb(3)*q(4))/2;
