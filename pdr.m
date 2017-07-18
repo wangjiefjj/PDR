@@ -13,11 +13,10 @@ data = load('.\data\pdr_data.log');
 GNSS = 0;
 SENSOR = 1;
 
-
 %% configure
 
 SampleRate = 50;   % Hz
-AlignmentTime = 5; % second
+AlignmentTime = 2; % second
 MagCalibrationTime = 10;   % second
 
 %% prepare data for mag calibration & initial alignment
@@ -52,11 +51,6 @@ else
     mag_calibration = 0;
     disp('mag calibration can not be execuated');
 end
-
-%% configure
-
-SampleRate = 50;    % Hz
-AlignmentTime = 2;  % second
 
 %% initial alignment
 
