@@ -8,7 +8,7 @@ extern "C" {
 #endif
 
 // magnetic config
-#define     MAGSENSITIVE                (1.0F)                      // MAGSENSITIVE (uT per counts)
+#define     MAGSENSITIVE                (0.01F)                     // MAGSENSITIVE (uT per counts)
 #define     SENSORFS 			        (200.0F)                    // frequency of gyro sensor sampling process
 
 // magnetic calibration constants

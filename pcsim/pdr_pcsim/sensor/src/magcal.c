@@ -274,7 +274,7 @@ U32 magCalibrationExec(magCalibration_t* const pMagCalibration, const magneticBu
             {
                 if (pMagBuffer->index[i][j] != -1)
                 {
-                    fprintf(fp, "%5d %5d %5d\r\n", pMagBuffer->iMagRaw[X][i][j], pMagBuffer->iMagRaw[Y][i][j], pMagBuffer->iMagRaw[Z][i][j]);
+                    fprintf(fp, "%d %d %d\n", pMagBuffer->iMagRaw[X][i][j], pMagBuffer->iMagRaw[Y][i][j], pMagBuffer->iMagRaw[Z][i][j]);
                 }
             }
         }
@@ -299,7 +299,7 @@ U32 magCalibrationExec(magCalibration_t* const pMagCalibration, const magneticBu
             {
                 if (pMagBuffer->index[i][j] != -1)
                 {
-                    fprintf(fp, "%5d %5d %5d\r\n", pMagBuffer->iMagRaw[X][i][j], pMagBuffer->iMagRaw[Y][i][j], pMagBuffer->iMagRaw[Z][i][j]);
+                    fprintf(fp, "%d %d %d\n", pMagBuffer->iMagRaw[X][i][j], pMagBuffer->iMagRaw[Y][i][j], pMagBuffer->iMagRaw[Z][i][j]);
                 }
             }
         }
