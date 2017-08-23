@@ -45,7 +45,8 @@ extern "C" {
         gnssData_t   gnssData;
     } pdrData_t;
 
-    U32 pdrNavExec(pdrData_t *pdrData);
+    U32 pdrNavInit();
+    U32 pdrNavExec(const pdrData_t* const pdrData);
 
 #ifdef __cplusplus
 }      /* extern "C" */

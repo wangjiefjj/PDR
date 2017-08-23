@@ -39,10 +39,18 @@ int main(int argc,char *argv[])
 		return -1;
 	}
 
+    if (pdrNavInit())
+    {
+        printf("pdr system init failed!\r\n");
+        return -1;
+    }
+
 	while ( fgets(line, MAX_BUFF_LEN, fp) != 0 )
 	{
         pdrData_t pdrData;
 #ifdef DEBUG
+        printf("\r\n--------------------------------------------------------------------\r\n");
+        printf("new data income:\r\n");
         puts(line);
 #endif
         memset(&pdrData, 0, sizeof(pdrData_t));

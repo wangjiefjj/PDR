@@ -41,7 +41,7 @@
 			<Tool
 				Name="VCCLCompilerTool"
 				Optimization="0"
-				AdditionalIncludeDirectories="..\..\sys\inc;..\..\hal\inc"
+				AdditionalIncludeDirectories="..\..\sys\inc;..\..\misc\inc;..\..\fusion\inc;..\..\sensor\inc;..\..\hal\inc"
 				PreprocessorDefinitions="WIN32;_DEBUG;_CONSOLE;DEBUG"
 				MinimalRebuild="true"
 				BasicRuntimeChecks="3"
@@ -172,7 +172,23 @@
 			UniqueIdentifier="{4FC737F1-C7A5-4376-A066-2A32D752A2FF}"
 			>
 			<File
+				RelativePath="..\..\fusion\src\ahrs.c"
+				>
+			</File>
+			<File
+				RelativePath="..\..\fusion\src\kalman.c"
+				>
+			</File>
+			<File
+				RelativePath="..\..\sensor\src\magcal.c"
+				>
+			</File>
+			<File
 				RelativePath="..\..\sys\src\main.c"
+				>
+			</File>
+			<File
+				RelativePath="..\..\misc\src\misc.c"
 				>
 			</File>
 			<File
@@ -185,6 +201,22 @@
 			Filter="h;hpp;hxx;hm;inl;inc;xsd"
 			UniqueIdentifier="{93995380-89BD-4b04-88EB-625FBE52EBFB}"
 			>
+			<File
+				RelativePath="..\..\fusion\inc\ahrs.h"
+				>
+			</File>
+			<File
+				RelativePath="..\..\fusion\inc\kalman.h"
+				>
+			</File>
+			<File
+				RelativePath="..\..\sensor\inc\magcal.h"
+				>
+			</File>
+			<File
+				RelativePath="..\..\misc\inc\misc.h"
+				>
+			</File>
 			<File
 				RelativePath="..\..\hal\inc\pdr.h"
 				>
