@@ -45,7 +45,7 @@ int main(int argc,char *argv[])
         return -1;
     }
 
-	while ( fgets(line, MAX_BUFF_LEN, fp) != 0 )
+	while (fgets(line, MAX_BUFF_LEN, fp) != 0 )
 	{
         pdrData_t pdrData;
 #ifdef DEBUG
@@ -54,7 +54,7 @@ int main(int argc,char *argv[])
         puts(line);
 #endif
         memset(&pdrData, 0, sizeof(pdrData_t));
-        if ( praseData(line, &pdrData) )
+        if (praseData(line, &pdrData))
         {
             printf("parsing failed!\r\n");
             return -1;

@@ -7,14 +7,24 @@
 #include "magcal.h"
 #include "ahrs.h"
 
+typedef struct
+{
+    U32   uStaticFlag;
+    U32   uMagCaliFlag;
+    U32   uHorizonAlignFlag;
+    U32   uHeadingAlignFlag;
+    U32   uPdrNavFlag;
+} pdrCtrl_t;
 
 static magneticBuffer_t MagBuffer;
 static magCalibration_t MagCalibration;
 static ahrsFixData_t AhrsFixData;
+static pdrCtrl_t PdrCtrl;
 
 static void seDataProc(const sensorData_t* const pSensorData);
 static void gnssDataProc(const gnssData_t* const pGnssData);
 static void sensorDataCorrection(FLT gyro[], FLT acc[], FLT mag[]);
+static U32 initialAlignment(const FLT facc[], const FLT fmag[]);
 
 /*-------------------------------------------------------------------------*/
 /**
@@ -32,6 +42,14 @@ U32 pdrNavInit()
         printf("mag calibration init failed!\r\n");
         return -1;
     }
+
+    if (ahrsInit(&AhrsFixData))
+    {
+        printf("ahrs init failed!\r\n");
+        return -1;
+    }
+
+    memset(&PdrCtrl, 0, sizeof(pdrCtrl_t));
 
     return 0;
 }
@@ -75,11 +93,13 @@ static void seDataProc(const sensorData_t* const pSensorData)
 {
     U32 utime = 0;
     U32 i = 0;
+    U32 retval;
     FLT fgyro[CHN] = {0};
     FLT facc[CHN] = {0};
     FLT fmag[CHN] = {0};
     static U32 LoopCounter = 0;
 
+    /* sensor data correction */
     utime = pSensorData->uTime;
     for (i = X; i <= Z; i++)
     {
@@ -88,6 +108,8 @@ static void seDataProc(const sensorData_t* const pSensorData)
         fmag[i] = pSensorData->fMag[i];
     }
     sensorDataCorrection(fgyro, facc, fmag);
+
+    /* mag calibration */
     magBufferUpdate(&MagBuffer, pSensorData->fMag, fmag, LoopCounter);
     LoopCounter++;
     magCalibrationExec(&MagCalibration, &MagBuffer);
@@ -104,6 +126,25 @@ static void seDataProc(const sensorData_t* const pSensorData)
         printf("inverse soft iron matrix: %5.3f, %5.3f, %5.3f\r\n", MagCalibration.finvW[2][0], MagCalibration.finvW[2][1], MagCalibration.finvW[2][2]);
 #endif
     }
+
+    /* static detect */
+    PdrCtrl.uStaticFlag = staticDetect(fgyro, facc);
+
+    /* initial alignment */
+    // note: dip angle is computed in initial alignment which is executed only once.
+    //       so if work for a long time, the dip angle need to be recomputed.
+    if (retval = initialAlignment(facc, fmag))
+    {
+#ifdef DEBUG
+        printf("initial alignment is completed in case %d.\r\n", retval);
+#endif
+        return;
+    }
+
+    /* start AHRS loop */
+    
+    /* start dead reckoning loop */
+
 }
 
 /*-------------------------------------------------------------------------*/
@@ -139,4 +180,71 @@ static void sensorDataCorrection(FLT gyro[], FLT acc[], FLT mag[])
     
     // mag data correction
     magCorrection(mag, &MagCalibration);
+}
+
+/*-------------------------------------------------------------------------*/
+/**
+  @brief    
+  @param    
+  @return
+  
+
+ */
+/*--------------------------------------------------------------------------*/
+enum
+{
+    None = 0,
+    Case1 = 1,
+    Case2 = 2,
+    Case3 = 3,
+};
+static U32 initialAlignment(const FLT facc[], const FLT fmag[])
+{
+    if (MagCalibration.iValidMagCal != 0)
+    {
+        // initial alignment case 3: 
+        // horizon alignment is completed before.
+        // heading alignment can be executed when calibration is completed.
+        if (PdrCtrl.uHeadingAlignFlag == 0 && PdrCtrl.uHorizonAlignFlag == 1)
+        {
+            headingAlignment(fmag, &AhrsFixData);
+            PdrCtrl.uHeadingAlignFlag = 1;
+
+            return Case3;
+        }
+    }
+
+    if (PdrCtrl.uStaticFlag == 1)
+    {
+        gyroCalibration(AhrsFixData.fGyroBias);
+        if (MagCalibration.iValidMagCal != 0)
+        {
+            // initial alignment case 1: 
+            // device is static and mag calibration is completed.
+            // horizon alignment and heading alignment can be executed simultaneously. 
+            if (PdrCtrl.uHeadingAlignFlag == 0 && PdrCtrl.uHorizonAlignFlag == 0)
+            {
+                compassAlignment(facc, fmag, &AhrsFixData);
+                PdrCtrl.uHeadingAlignFlag = 1;
+                PdrCtrl.uHorizonAlignFlag = 1;
+
+                return Case1;
+            }
+        }
+        else
+        {
+            // initial alignment case 2: 
+            // device is static and mag calibration is not completed.
+            // only horizon alignment can be executed.
+            if (PdrCtrl.uHorizonAlignFlag == 0)
+            {
+                horizonAlignment(facc, &AhrsFixData);
+                PdrCtrl.uHorizonAlignFlag = 1;
+
+                return Case2;
+            }
+        }
+    }
+
+    return None;
 }

@@ -36,8 +36,14 @@ extern "C" {
         FLT   fDelta;                   // inclination angle (rad)
     } ahrsFixData_t;
 
+    U32 ahrsInit(ahrsFixData_t* const pAhrsFixData);
     void gyroCorrection(FLT gyro[], const ahrsFixData_t* const pAhrsFixData);
     void accCorrection(FLT acc[], const ahrsFixData_t* const pAhrsFixData);
+    U32 staticDetect(const FLT gyro[], const FLT acc[]);
+    void gyroCalibration(FLT gyroBias[]);
+    U32 compassAlignment(const FLT acc[], const FLT mag[], ahrsFixData_t* const pAhrsFixData);
+    U32 horizonAlignment(const FLT acc[], ahrsFixData_t* const pAhrsFixData);
+    U32 headingAlignment(const FLT mag[], ahrsFixData_t* const pAhrsFixData);
 
 #ifdef __cplusplus
 }      /* extern "C" */
