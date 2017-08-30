@@ -1,11 +1,13 @@
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
-#include <ctype.h>
+#include <math.h>
 #include "types.h"
 #include "pdr.h"
 #include "magcal.h"
 #include "ahrs.h"
+
+#define GYRO_BUFFER_LEN 50
 
 typedef struct
 {
@@ -19,12 +21,16 @@ typedef struct
 static magneticBuffer_t MagBuffer;
 static magCalibration_t MagCalibration;
 static ahrsFixData_t AhrsFixData;
+static kalmanInfo_t AhrsKalmanInfo;
 static pdrCtrl_t PdrCtrl;
+static FLT GyroSmoothBuffer[GYRO_BUFFER_LEN][CHN];
+extern FILE* FpAhrs;
 
 static void seDataProc(const sensorData_t* const pSensorData);
 static void gnssDataProc(const gnssData_t* const pGnssData);
 static void sensorDataCorrection(FLT gyro[], FLT acc[], FLT mag[]);
 static U32 initialAlignment(const FLT facc[], const FLT fmag[]);
+static void gyroSmooth(FLT fgyro[], FLT gyroBuffer[][CHN]);
 
 /*-------------------------------------------------------------------------*/
 /**
@@ -46,6 +52,12 @@ U32 pdrNavInit()
     if (ahrsInit(&AhrsFixData))
     {
         printf("ahrs init failed!\r\n");
+        return -1;
+    }
+
+    if (ahrsKalmanInit(&AhrsKalmanInfo))
+    {
+        printf("ahrs kalman init failed!\r\n");
         return -1;
     }
 
@@ -115,6 +127,7 @@ static void seDataProc(const sensorData_t* const pSensorData)
     magCalibrationExec(&MagCalibration, &MagBuffer);
     if (MagCalibration.iValidMagCal != 0)
     {
+        AhrsFixData.fB = MagCalibration.fB;
 #ifdef DEBUG
         // indicate mag calibration is valid
         printf("mag %dparameters calibration is completed.\r\n", MagCalibration.iValidMagCal);
@@ -135,6 +148,7 @@ static void seDataProc(const sensorData_t* const pSensorData)
     //       so if work for a long time, the dip angle need to be recomputed.
     if (retval = initialAlignment(facc, fmag))
     {
+        AhrsFixData.uTime = utime;
 #ifdef DEBUG
         printf("initial alignment is completed in case %d.\r\n", retval);
 #endif
@@ -142,6 +156,31 @@ static void seDataProc(const sensorData_t* const pSensorData)
     }
 
     /* start AHRS loop */
+    if (PdrCtrl.uHorizonAlignFlag == 1)
+    {
+        // gyro data smooth
+        gyroSmooth(fgyro, GyroSmoothBuffer);
+        for (i = X; i <= Z; i++)
+        {
+            if (fabsf(fgyro[i]) < 0.1)
+            {
+                fgyro[i] = 0;
+            }
+        }
+        quaternionIntegration(utime, fgyro, &AhrsFixData);
+        if (PdrCtrl.uHeadingAlignFlag == 1)
+        {
+            ahrsKalmanExec(utime, facc, fmag, &AhrsKalmanInfo, &AhrsFixData);
+        }
+        else
+        {
+            ahrsKalmanExec(utime, facc, NULL, &AhrsKalmanInfo, &AhrsFixData);
+        }
+        AhrsFixData.uTime = utime;
+#ifdef DEBUG
+        fprintf(FpAhrs, "%f, %f, %f\n", AhrsFixData.fPsiPl*RAD2DEG, AhrsFixData.fThePl*RAD2DEG, AhrsFixData.fPhiPl*RAD2DEG);
+#endif
+    }
     
     /* start dead reckoning loop */
 
@@ -247,4 +286,50 @@ static U32 initialAlignment(const FLT facc[], const FLT fmag[])
     }
 
     return None;
+}
+
+static void gyroSmooth(FLT fgyro[], FLT gyroBuffer[][CHN])
+{
+    U32 i = 0;
+    U32 j = 0;
+    FLT gyroSum[CHN] = {0.0};
+    static U32 ucount = 0;
+
+    if (ucount < GYRO_BUFFER_LEN)
+    {
+        for (i = X; i <= Z; i++)
+        {
+            gyroBuffer[ucount][i] = fgyro[i];
+        }
+    }
+    else
+    {
+        ucount = GYRO_BUFFER_LEN;
+        for (i = 0; i < GYRO_BUFFER_LEN - 1; i++)
+        {
+            for (j = X; j <= Z; j++)
+            {
+                gyroBuffer[i][j] = gyroBuffer[i+1][j];
+            }
+        }
+        for (j = X; j <= Z; j++)
+        {
+            gyroBuffer[GYRO_BUFFER_LEN - 1][j] = fgyro[j];
+        }
+    }
+    if (ucount > 1)
+    {
+        for (i = 0; i < ucount - 1; i++)
+        {
+            for (j = X; j <= Z; j++)
+            {
+                gyroSum[j] += gyroBuffer[i][j];
+            }
+        }
+        for (i = X; i <= Z; i++)
+        {
+            fgyro[i] = gyroSum[i] / ucount;
+        }
+    }
+    ucount ++;
 }

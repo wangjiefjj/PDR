@@ -1,6 +1,7 @@
 #ifndef _AHRS_H_
 #define _AHRS_H_
 
+#include "kalman.h"
 #include "types.h"
 #include "misc.h"
 
@@ -34,6 +35,7 @@ extern "C" {
         FLT   fGyroBias[CHN];           // gyro bias (rad/s)
         FLT   fAccBias[CHN];            // acc bias (m/s2)
         FLT   fDelta;                   // inclination angle (rad)
+        FLT   fB;                       // current geomagnetic field magnitude (uT)
     } ahrsFixData_t;
 
     U32 ahrsInit(ahrsFixData_t* const pAhrsFixData);
@@ -44,6 +46,9 @@ extern "C" {
     U32 compassAlignment(const FLT acc[], const FLT mag[], ahrsFixData_t* const pAhrsFixData);
     U32 horizonAlignment(const FLT acc[], ahrsFixData_t* const pAhrsFixData);
     U32 headingAlignment(const FLT mag[], ahrsFixData_t* const pAhrsFixData);
+    U32 quaternionIntegration (U32 utime, const FLT gyro[], ahrsFixData_t* const pAhrsFixData);
+    U32 ahrsKalmanInit(kalmanInfo_t* const pKalmanInfo);
+    U32 ahrsKalmanExec(U32 utime, const FLT acc[], const FLT mag[], kalmanInfo_t* const pKalmanInfo, ahrsFixData_t* const pAhrsFixData);
 
 #ifdef __cplusplus
 }      /* extern "C" */

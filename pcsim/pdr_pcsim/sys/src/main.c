@@ -11,7 +11,8 @@
 
 
 #ifdef DEBUG
-FILE *FpOutput;
+FILE *FpOutput = NULL;
+FILE* FpAhrs = NULL;
 #endif
 
 static U32 praseData(char *str, pdrData_t *pdrData);
@@ -32,6 +33,7 @@ int main(int argc,char *argv[])
 	fopen_s(&fp, "../../data/pdr_data.log", "r");
 #ifdef DEBUG
     fopen_s(&FpOutput, "../../data/output.txt", "w");
+    fopen_s(&FpAhrs, "../../data/ahrsData.txt", "w");
 #endif
 	if (fp == NULL)
 	{
@@ -50,7 +52,7 @@ int main(int argc,char *argv[])
         pdrData_t pdrData;
 #ifdef DEBUG
         printf("\r\n--------------------------------------------------------------------\r\n");
-        printf("new data income:\r\n");
+        printf("new data come:\r\n");
         puts(line);
 #endif
         memset(&pdrData, 0, sizeof(pdrData_t));
@@ -64,6 +66,7 @@ int main(int argc,char *argv[])
 #ifdef DEBUG
     fclose(fp);
     fclose(FpOutput);
+    fclose(FpAhrs);
 #endif
 
 	return 0;
@@ -95,11 +98,11 @@ static U32 praseData(char *str, pdrData_t *pdrData)
     // distinguish data types
     flag = (U32)atoi(section[0]);
     pdrData->dataType = flag;
-    pdrData->gnssData.uTime = atoi(section[1]);
     
     switch (flag)
     {
         case GNSS_DATA:
+            pdrData->gnssData.uTime = atoi(section[1]);
             pdrData->gnssData.fLatitude = atof(section[2]);
             pdrData->gnssData.fLongitude = atof(section[3]);
             pdrData->gnssData.fAltitude = (FLT)atof(section[4]);
@@ -110,6 +113,7 @@ static U32 praseData(char *str, pdrData_t *pdrData)
             break;
 
         case SENSOR_DATA:
+            pdrData->sensorData.uTime = atoi(section[1]);
             pdrData->sensorData.fAcc[X] = (FLT)atof(section[2]);
             pdrData->sensorData.fAcc[Y] = (FLT)atof(section[3]);
             pdrData->sensorData.fAcc[Z] = (FLT)atof(section[4]);
