@@ -574,7 +574,7 @@ for i = M:length(data)
                  end
 
                   % determin the threshold
-                 if abs(acc_det_mean - Ge) > 0.8
+                 if (acc_det_mean - Ge) > 0.8
                      threshold = 0.15 * acc_det_mean;
                  else
                      acc_det_mean = Ge;

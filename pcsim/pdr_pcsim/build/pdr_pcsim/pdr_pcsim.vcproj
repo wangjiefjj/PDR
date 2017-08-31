@@ -195,6 +195,10 @@
 				RelativePath="..\..\hal\src\pdr.c"
 				>
 			</File>
+			<File
+				RelativePath="..\..\fusion\src\step.c"
+				>
+			</File>
 		</Filter>
 		<Filter
 			Name="Header Files"
@@ -219,6 +223,10 @@
 			</File>
 			<File
 				RelativePath="..\..\hal\inc\pdr.h"
+				>
+			</File>
+			<File
+				RelativePath="..\..\fusion\inc\step.h"
 				>
 			</File>
 			<File

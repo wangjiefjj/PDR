@@ -13,6 +13,7 @@
 #ifdef DEBUG
 FILE *FpOutput = NULL;
 FILE* FpAhrs = NULL;
+FILE* FpStep = NULL;
 #endif
 
 static U32 praseData(char *str, pdrData_t *pdrData);
@@ -34,6 +35,7 @@ int main(int argc,char *argv[])
 #ifdef DEBUG
     fopen_s(&FpOutput, "../../data/output.txt", "w");
     fopen_s(&FpAhrs, "../../data/ahrsData.txt", "w");
+    fopen_s(&FpStep, "../../data/stepData.txt", "w");
 #endif
 	if (fp == NULL)
 	{
@@ -67,6 +69,7 @@ int main(int argc,char *argv[])
     fclose(fp);
     fclose(FpOutput);
     fclose(FpAhrs);
+    fclose(FpStep);
 #endif
 
 	return 0;

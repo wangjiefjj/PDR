@@ -6,8 +6,10 @@
 #include "pdr.h"
 #include "magcal.h"
 #include "ahrs.h"
+#include "step.h"
 
-#define GYRO_BUFFER_LEN 50
+#define GYRO_BUFFER_LEN (50)
+#define AVE_NUM         (5)
 
 typedef struct
 {
@@ -22,15 +24,19 @@ static magneticBuffer_t MagBuffer;
 static magCalibration_t MagCalibration;
 static ahrsFixData_t AhrsFixData;
 static kalmanInfo_t AhrsKalmanInfo;
+static stepInfo_t StepInfo;
 static pdrCtrl_t PdrCtrl;
 static FLT GyroSmoothBuffer[GYRO_BUFFER_LEN][CHN];
 extern FILE* FpAhrs;
+extern FILE* FpStep;
 
 static void seDataProc(const sensorData_t* const pSensorData);
 static void gnssDataProc(const gnssData_t* const pGnssData);
 static void sensorDataCorrection(FLT gyro[], FLT acc[], FLT mag[]);
 static U32 initialAlignment(const FLT facc[], const FLT fmag[]);
 static void gyroSmooth(FLT fgyro[], FLT gyroBuffer[][CHN]);
+static U32 staticDetect(const FLT gyro[], const FLT acc[]);
+static void gyroCalibration(FLT gyroBias[]);
 
 /*-------------------------------------------------------------------------*/
 /**
@@ -58,6 +64,12 @@ U32 pdrNavInit()
     if (ahrsKalmanInit(&AhrsKalmanInfo))
     {
         printf("ahrs kalman init failed!\r\n");
+        return -1;
+    }
+
+    if (stepInit(&StepInfo))
+    {
+        printf("step init failed!\r\n");
         return -1;
     }
 
@@ -110,6 +122,7 @@ static void seDataProc(const sensorData_t* const pSensorData)
     FLT facc[CHN] = {0};
     FLT fmag[CHN] = {0};
     static U32 LoopCounter = 0;
+    static FLT AccDetSum = 0.0;
 
     /* sensor data correction */
     utime = pSensorData->uTime;
@@ -183,6 +196,31 @@ static void seDataProc(const sensorData_t* const pSensorData)
     }
     
     /* start dead reckoning loop */
+    if (PdrCtrl.uPdrNavFlag == 1)
+    {
+        FLT accDet = sqrtf(facc[0] * facc[0] + facc[1] * facc[1] + facc[2] * facc[2]);
+
+        if (LoopCounter % AVE_NUM != 0)
+        {
+            AccDetSum += accDet;
+        }
+        else
+        {
+            // 10Hz sample rate is enough for step detect
+            accDet = (AccDetSum + accDet) / AVE_NUM;
+            AccDetSum = 0.0F;
+#ifdef DEBUG
+            fprintf(FpStep, "%d, %f\n", utime, accDet);
+#endif
+            if (stepDetection(utime, accDet, &StepInfo))
+            {
+                // step occur
+#ifdef DEBUG
+                printf("%d step occur in %dms.\r\n", StepInfo.stepCount, StepInfo.preStepTime);
+#endif
+            }
+        }
+    }
 
 }
 
@@ -197,7 +235,13 @@ static void seDataProc(const sensorData_t* const pSensorData)
 /*--------------------------------------------------------------------------*/
 static void gnssDataProc(const gnssData_t* const pGnssData)
 {
-    ;
+    if (PdrCtrl.uPdrNavFlag != 1)
+    {
+        if (PdrCtrl.uHeadingAlignFlag == 1 && PdrCtrl.uHorizonAlignFlag == 1)
+        {
+            PdrCtrl.uPdrNavFlag = 1;
+        }
+    }
 }
 
 /*-------------------------------------------------------------------------*/
@@ -332,4 +376,111 @@ static void gyroSmooth(FLT fgyro[], FLT gyroBuffer[][CHN])
         }
     }
     ucount ++;
+}
+
+/*-------------------------------------------------------------------------*/
+/**
+  @brief    
+  @param    
+  @return   
+  
+
+ */
+/*--------------------------------------------------------------------------*/
+#define     ACC_STATIC      (0.1)
+#define     GYRO_STATIC     (0.01)
+#define     ALIGN_NUM       (100)
+static FLT AlignGyroArray[ALIGN_NUM][CHN] = {0};
+static FLT AlignAccArray[ALIGN_NUM][CHN] = {0};
+
+static U32 staticDetect(const FLT gyro[], const FLT acc[])
+{
+    FLT gyro_mean = 0;
+    FLT gyro_std = 0;
+    FLT acc_mean = 0;
+    FLT acc_std = 0;
+    U32 i = 0;
+    U32 j = 0;
+    static U32 uCount = 0;
+
+    if (uCount < ALIGN_NUM)
+    {
+        for (i = X; i <= Z; i++)
+        {
+            AlignGyroArray[uCount][i] = gyro[i];
+            AlignAccArray[uCount][i] = acc[i];
+        }
+    }
+    else
+    {
+        for(i = 0; i < ALIGN_NUM - 1; i++)
+        {
+            for (j = X; j <= Z; j++)
+            {
+                AlignGyroArray[i][j] = AlignGyroArray[i+1][j];
+                AlignAccArray[i][j] = AlignAccArray[i+1][j];
+            }
+        }
+        for (i = X; i <= Z; i++)
+        {
+            AlignGyroArray[ALIGN_NUM-1][i] = gyro[i];
+            AlignAccArray[ALIGN_NUM-1][i] = acc[i];
+        }
+    }
+
+    uCount++;
+    if (uCount >= ALIGN_NUM)
+    {
+        uCount = ALIGN_NUM;
+        if (computeMeanStd(&gyro_mean, &gyro_std, AlignGyroArray, ALIGN_NUM))
+        {
+            return -1;
+        }
+
+        if (computeMeanStd(&acc_mean, &acc_std, AlignAccArray, ALIGN_NUM))
+        {
+            return -1;
+        }
+
+        if (acc_std < ACC_STATIC && gyro_std < GYRO_STATIC)
+        {
+            // indicate static condition
+            return 1;
+        }
+    }
+
+    return 0;
+}
+
+/*-------------------------------------------------------------------------*/
+/**
+  @brief    
+  @param    
+  @return   
+  
+
+ */
+/*--------------------------------------------------------------------------*/
+static void gyroCalibration(FLT gyroBias[])
+{
+    U32 i = 0;
+    FLT fgyroSum[CHN] = {0.0F};
+
+    for (i = 0; i < ALIGN_NUM; i++)
+    {
+        fgyroSum[X] += AlignGyroArray[i][X];
+        fgyroSum[Y] += AlignGyroArray[i][Y];
+        fgyroSum[Z] += AlignGyroArray[i][Z];
+    }
+    gyroBias[X] += (FLT)(fgyroSum[X] * 1.0 / ALIGN_NUM);
+    gyroBias[Y] += (FLT)(fgyroSum[Y] * 1.0 / ALIGN_NUM);
+    gyroBias[Z] += (FLT)(fgyroSum[Z] * 1.0 / ALIGN_NUM);
+
+    // clear gyro buffer
+    for (i = 0; i < ALIGN_NUM; i++)
+    {
+        AlignGyroArray[i][X] = 0;
+        AlignGyroArray[i][Y] = 0;
+        AlignGyroArray[i][Z] = 0;
+    }
 }
