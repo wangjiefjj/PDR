@@ -8,10 +8,14 @@
 #include "ahrs.h"
 #include "step.h"
 
-#define GYRO_BUFFER_LEN (50)
-#define AVE_NUM         (5)
+#define     GYRO_BUFFER_LEN     (50)
+#define     AVE_NUM             (5)
+#define     RE                  (6378137.0)
+#define     esqu                (0.00669437999013)
+#define     RM(L)               (RE*(1-esqu)/pow((1-esqu*sin(L)*sin(L)),1.5))
+#define     RN(L)               (RE/sqrt(1-esqu*sin(L)*sin(L)))
 
-typedef struct
+typedef struct pdrCtrl
 {
     U32   uStaticFlag;
     U32   uMagCaliFlag;
@@ -20,15 +24,25 @@ typedef struct
     U32   uPdrNavFlag;
 } pdrCtrl_t;
 
+typedef struct pdrInfo
+{
+    U32 uTime;
+    DBL fLatitude;
+    DBL fLongitude;
+    DBL fAltitude;
+} pdrInfo_t;
+
 static magneticBuffer_t MagBuffer;
 static magCalibration_t MagCalibration;
 static ahrsFixData_t AhrsFixData;
 static kalmanInfo_t AhrsKalmanInfo;
 static stepInfo_t StepInfo;
 static pdrCtrl_t PdrCtrl;
+static pdrInfo_t PdrInfo;
 static FLT GyroSmoothBuffer[GYRO_BUFFER_LEN][CHN];
 extern FILE* FpAhrs;
 extern FILE* FpStep;
+extern FILE* FpOutput;
 
 static void seDataProc(const sensorData_t* const pSensorData);
 static void gnssDataProc(const gnssData_t* const pGnssData);
@@ -143,13 +157,13 @@ static void seDataProc(const sensorData_t* const pSensorData)
         AhrsFixData.fB = MagCalibration.fB;
 #ifdef DEBUG
         // indicate mag calibration is valid
-        printf("mag %dparameters calibration is completed.\r\n", MagCalibration.iValidMagCal);
+        /*printf("mag %dparameters calibration is completed.\r\n", MagCalibration.iValidMagCal);
         printf("fit error: %f%%\r\n", MagCalibration.fFitErrorpc);
         printf("geomagnetic field magnitude: %fuT\r\n", MagCalibration.fB);
         printf("hard iron offset: %fuT, %fuT, %fuT\r\n", MagCalibration.fV[0], MagCalibration.fV[1], MagCalibration.fV[2]);
         printf("inverse soft iron matrix: %5.3f, %5.3f, %5.3f\r\n", MagCalibration.finvW[0][0], MagCalibration.finvW[0][1], MagCalibration.finvW[0][2]);
         printf("inverse soft iron matrix: %5.3f, %5.3f, %5.3f\r\n", MagCalibration.finvW[1][0], MagCalibration.finvW[1][1], MagCalibration.finvW[1][2]);
-        printf("inverse soft iron matrix: %5.3f, %5.3f, %5.3f\r\n", MagCalibration.finvW[2][0], MagCalibration.finvW[2][1], MagCalibration.finvW[2][2]);
+        printf("inverse soft iron matrix: %5.3f, %5.3f, %5.3f\r\n", MagCalibration.finvW[2][0], MagCalibration.finvW[2][1], MagCalibration.finvW[2][2]);*/
 #endif
     }
 
@@ -214,9 +228,19 @@ static void seDataProc(const sensorData_t* const pSensorData)
 #endif
             if (stepDetection(utime, accDet, &StepInfo))
             {
-                // step occur
+                DBL fLatitude = PdrInfo.fLatitude;
+                DBL fLongitude = PdrInfo.fLongitude;
+                DBL fAltitude = PdrInfo.fAltitude;
+
+                fLatitude += StepInfo.stepLength * cosf(AhrsFixData.fPsiPl) / RM(fLatitude);
+                fLongitude += StepInfo.stepLength * sinf(AhrsFixData.fPsiPl) / RN(fLatitude) / cosf(fLatitude);
+
+                PdrInfo.uTime = utime;
+                PdrInfo.fLatitude = fLatitude;
+                PdrInfo.fLongitude = fLongitude;
 #ifdef DEBUG
                 printf("%d step occur in %dms.\r\n", StepInfo.stepCount, StepInfo.preStepTime);
+                fprintf(FpOutput, "%d, %.8f, %.8f, %.8f\n", utime, fLatitude*RAD2DEG, fLongitude*RAD2DEG, fAltitude);
 #endif
             }
         }
@@ -240,6 +264,10 @@ static void gnssDataProc(const gnssData_t* const pGnssData)
         if (PdrCtrl.uHeadingAlignFlag == 1 && PdrCtrl.uHorizonAlignFlag == 1)
         {
             PdrCtrl.uPdrNavFlag = 1;
+            PdrInfo.uTime = pGnssData->uTime;
+            PdrInfo.fLatitude = pGnssData->fLatitude;
+            PdrInfo.fLongitude = pGnssData->fLongitude;
+            PdrInfo.fAltitude = pGnssData->fAltitude;
         }
     }
 }

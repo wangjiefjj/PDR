@@ -14,7 +14,7 @@
 #define     SIG_PHI_N               (1.0*PI/180)                /* rms of pitch and roll */
 #define     SIG_PHI_U               (1.0*PI/180)                /* (rad)0.001 rms of heading */
 #define     SIG_ACC                 (0.3)                       /* rms of acc error(m/(s.s)) */
-#define     SIG_GYRO                (1000.0*DEG2RAD/3600.0)     /* rms of gyro error  */
+#define     SIG_GYRO                (10.0*DEG2RAD/3600.0)     /* rms of gyro error  */
 
 #define     GYRO_TIME_CONSTANT      (100.0F)
 #define     ACC_TIME_CONSTANT       (100.0F)

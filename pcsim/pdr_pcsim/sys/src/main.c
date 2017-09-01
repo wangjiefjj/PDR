@@ -53,9 +53,9 @@ int main(int argc,char *argv[])
 	{
         pdrData_t pdrData;
 #ifdef DEBUG
-        printf("\r\n--------------------------------------------------------------------\r\n");
-        printf("new data come:\r\n");
-        puts(line);
+        //printf("\r\n--------------------------------------------------------------------\r\n");
+        //printf("new data come:\r\n");
+        //puts(line);
 #endif
         memset(&pdrData, 0, sizeof(pdrData_t));
         if (praseData(line, &pdrData))
