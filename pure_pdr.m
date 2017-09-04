@@ -91,6 +91,7 @@ if initial_alignment_flag == 1
     Cbn_initial = Cnb_initial';
     [yaw_initial, pitch_initial, roll_initial] = dcm2euler(Cbn_initial);
     q = euler2q(yaw_initial, pitch_initial, roll_initial);
+    q_pure = q;
     % compute the geomagnetic inclination angle
     geoB = norm([mag_x_mean, mag_y_mean, mag_z_mean]);
     gmod = norm([g_x_mean, g_y_mean, g_z_mean]);
@@ -107,6 +108,7 @@ end
 Ge = 9.80665;
 RE = 6378137.0;
 esqu = 0.00669437999013;
+G_vector = [0, 0, Ge]';
 
 gyro_bias = zeros(3, 1);
 acc_bias = zeros(3, 1);
@@ -185,6 +187,8 @@ for i = M:length(data)
     % SENSOR
     elseif type == SENSOR
         sensor_count = sensor_count + 1;
+        
+        %% AHRS
         Mag = data(i, 9:11);
         Acc = data(i, 3:5);
         Gyro = data(i, 6:8);
@@ -206,11 +210,32 @@ for i = M:length(data)
         Gyro(2) = mean(gyro_smooth_array(1:slot_number, 2));
         Gyro(3) = mean(gyro_smooth_array(1:slot_number, 3));
         for j = 1:3
-            if abs(Gyro(j)) < 0.1
+            if abs(Gyro(j)) < 0.08
                Gyro(j) = 0; 
             end
         end
         
+        %% pure gyro estimate
+        
+        Cbn = q2dcm(q_pure);
+        Cnb = Cbn';
+
+        Wpbb = Gyro';
+
+        dq = zeros(4, 1);
+        dq(1) = -(Wpbb(1)*q_pure(2) + Wpbb(2)*q_pure(3) + Wpbb(3)*q_pure(4))/2;
+        dq(2) = (Wpbb(1)*q_pure(1) + Wpbb(3)*q_pure(3) - Wpbb(2)*q_pure(4))/2;
+        dq(3) = (Wpbb(2)*q_pure(1) - Wpbb(3)*q_pure(2) + Wpbb(1)*q_pure(4))/2;
+        dq(4) = (Wpbb(3)*q_pure(1) + Wpbb(2)*q_pure(2) - Wpbb(1)*q_pure(3))/2;
+        dt = 1/SampleRate;
+        q_pure = q_pure + dq*dt;
+        q_pure = q_norm(q_pure);
+        Cbn = q2dcm(q_pure);
+        [yaw_pure, pitch_pure, roll_pure] = dcm2euler(Cbn); % pure gyro estimation
+        heading_pure(sensor_count) = yaw_pure;
+        
+        %% fusion estimate
+
         % quaternion integration
         Cbn = q2dcm(q);
         Cnb = Cbn';
@@ -230,8 +255,99 @@ for i = M:length(data)
         q = q + dq*dt;
         q = q_norm(q);
         Cbn = q2dcm(q);
-        [yaw, pitch, roll] = dcm2euler(Cbn); % pure gyro estimation
-        heading_gyro(sensor_count) = yaw;
+        
+        %% kalman filter
+        F(1, 4) = -Cbn(1, 1);
+        F(1, 5) = -Cbn(1, 2);
+        F(1, 6) = -Cbn(1, 3);
+        F(2, 4) = -Cbn(2, 1);
+        F(2, 5) = -Cbn(2, 2);
+        F(2, 6) = -Cbn(2, 3);
+        F(3, 4) = -Cbn(3, 1);
+        F(3, 5) = -Cbn(3, 2);
+        F(3, 6) = -Cbn(3, 3);
+        F(4, 4) = -1/Corr_time_gyro;
+        F(5, 5) = -1/Corr_time_gyro;
+        F(6, 6) = -1/Corr_time_gyro;
+        F(7, 7) = -1/Corr_time_acc;
+        F(8, 8) = -1/Corr_time_acc;
+        F(9, 9) = -1/Corr_time_acc;
+
+        qdt(1, 1) = sigma_Win;
+        qdt(2, 2) = sigma_Win;
+        qdt(3, 3) = sigma_Win;
+        qdt(4, 4) = sigma_gyro;
+        qdt(5, 5) = sigma_gyro;
+        qdt(6, 6) = sigma_gyro;
+        qdt(7, 7) = sigma_acc;
+        qdt(8, 8) = sigma_acc;
+        qdt(9, 9) = sigma_acc;
+
+        G(1, 1) = -Cbn(1, 1);
+        G(1, 2) = -Cbn(1, 2);
+        G(1, 3) = -Cbn(1, 3);
+        G(2, 1) = -Cbn(2, 1);
+        G(2, 2) = -Cbn(2, 2);
+        G(2, 3) = -Cbn(2, 3);
+        G(3, 1) = -Cbn(3, 1);
+        G(3, 2) = -Cbn(3, 2);
+        G(3, 3) = -Cbn(3, 3);
+        G(4, 4) = 1;
+        G(5, 5) = 1;
+        G(6, 6) = 1;
+        G(7, 7) = 1;
+        G(8, 8) = 1;
+        G(9, 9) = 1;
+
+        % Q matrix discretization-2 order
+        Q_basic = G*qdt*G';
+        M1 = Q_basic;
+        M2 = Q_basic*F'+F*Q_basic;
+        Q = dt*M1 + 1/2*dt*dt*M2;
+
+        % PHIM matrix discretization-2 order
+        I = eye(9, 9);
+        PHIM = I + dt*F + 1/2*dt*dt*F*F;
+
+        %% predict
+        x = PHIM*x;
+        P = PHIM*P*PHIM' + Q;
+
+        %% update from acc
+        H = zeros(3, 9);
+        H(1, 2) = G_vector(3);
+        H(2, 1) = -G_vector(3);
+        H(1, 7) = Cbn(1, 1);
+        H(1, 8) = Cbn(1, 2);
+        H(1, 9) = Cbn(1, 3);
+        H(2, 7) = Cbn(2, 1);
+        H(2, 8) = Cbn(2, 2);
+        H(2, 9) = Cbn(2, 3);
+        H(3, 7) = Cbn(3, 1);
+        H(3, 8) = Cbn(3, 2);
+        H(3, 9) = Cbn(3, 3);
+
+        R = eye(3, 3);
+        R(1, 1) = 0.5^2;
+        R(2, 2) = 0.5^2;
+        R(3, 3) = 0.5^2;
+        
+        g_estimate = Cbn*(acc_bias - Acc');
+        Z = G_vector - g_estimate;
+        K = P*H'*((H*P*H'+R)^-1);
+        x = x + K*(Z - H*x);
+        P = (I - K*H)*P;
+
+        [deltaCbn] = euler2dcm (x(3), x(2), x(1)); % (I+P)Cbn
+        Cbn = deltaCbn*Cbn;
+        acc_bias = acc_bias + x(7:9);
+        gyro_bias = gyro_bias + x(4:6);
+        x(1:9) = 0;
+
+        [yaw, pitch, roll] = dcm2euler(Cbn);
+        q = euler2q(yaw, pitch, roll);
+        q = q_norm(q);
+        heading_fusion(sensor_count) = yaw;
         
         %% step detection
         if step_start_flag ~= 0
@@ -326,9 +442,11 @@ end
 gps2kml('pdrOut',step_timing,pdr_latitude_array,pdr_longitude_array,pdr_altitude_array,'o-b','MarkerSize',10,'LineWidth',3);
 
 figure;
-plot(heading_gyro*180/pi, 'r');
+plot(heading_fusion*180/pi, 'r');
+hold on;
+plot(heading_pure*180/pi, 'b');
 title('heading');
-legend('gyro')
+legend('fusion', 'pure')
 
 
 
