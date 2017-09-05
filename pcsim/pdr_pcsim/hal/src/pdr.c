@@ -18,7 +18,6 @@
 typedef struct pdrCtrl
 {
     U32   uStaticFlag;
-    U32   uMagCaliFlag;
     U32   uHorizonAlignFlag;
     U32   uHeadingAlignFlag;
     U32   uPdrNavFlag;
@@ -136,6 +135,7 @@ static void seDataProc(const sensorData_t* const pSensorData)
     FLT facc[CHN] = {0};
     FLT fmag[CHN] = {0};
     static U32 LoopCounter = 0;
+    static U32 AccLoopCounter = 0;
     static FLT AccDetSum = 0.0;
 
     /* sensor data correction */
@@ -195,9 +195,35 @@ static void seDataProc(const sensorData_t* const pSensorData)
             }
         }
         quaternionIntegration(utime, fgyro, &AhrsFixData);
-        if (PdrCtrl.uHeadingAlignFlag == 1)
+        if (PdrCtrl.uHeadingAlignFlag == 1 && MagCalibration.iValidMagCal != 0)
         {
-            ahrsKalmanExec(utime, facc, fmag, &AhrsKalmanInfo, &AhrsFixData);
+            FLT magVector[3] = {0.0};
+            FLT magEstimate[3] = {0.0};
+            FLT magResidual[3] = {0.0};
+            // check mag vector residual
+            magVector[0] = AhrsFixData.fB * cosf(AhrsFixData.fDelta);
+            magVector[2] = AhrsFixData.fB * sinf(AhrsFixData.fDelta);
+            for (i = X; i <= Z; i++)
+            {
+                magEstimate[i] = AhrsFixData.fCbn[i][X] * fmag[X] + AhrsFixData.fCbn[i][Y] * fmag[Y] + AhrsFixData.fCbn[i][Z] * fmag[Z];
+            }
+
+            magResidual[X] = magVector[X] - magEstimate[X];
+            magResidual[Y] = magVector[Y] - magEstimate[Y];
+            magResidual[Z] = magVector[Z] - magEstimate[Z];
+
+            if (fabs(magResidual[X]) > 5)
+            {
+#ifdef DEBUG
+                //printf("mag calibration invalid in %dms\r\n", utime);
+#endif
+                MagCalibration.iValidMagCal = 0;
+                ahrsKalmanExec(utime, facc, NULL, &AhrsKalmanInfo, &AhrsFixData);
+            }
+            else
+            {
+                ahrsKalmanExec(utime, facc, fmag, &AhrsKalmanInfo, &AhrsFixData);
+            }
         }
         else
         {
@@ -213,8 +239,9 @@ static void seDataProc(const sensorData_t* const pSensorData)
     if (PdrCtrl.uPdrNavFlag == 1)
     {
         FLT accDet = sqrtf(facc[0] * facc[0] + facc[1] * facc[1] + facc[2] * facc[2]);
+        AccLoopCounter ++;
 
-        if (LoopCounter % AVE_NUM != 0)
+        if (AccLoopCounter % AVE_NUM != 0)
         {
             AccDetSum += accDet;
         }

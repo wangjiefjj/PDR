@@ -14,13 +14,13 @@
 #define     SIG_PHI_N               (1.0*PI/180)                /* rms of pitch and roll */
 #define     SIG_PHI_U               (1.0*PI/180)                /* (rad)0.001 rms of heading */
 #define     SIG_ACC                 (0.3)                       /* rms of acc error(m/(s.s)) */
-#define     SIG_GYRO                (10.0*DEG2RAD/3600.0)     /* rms of gyro error  */
+#define     SIG_GYRO                (10.0*DEG2RAD/3600.0)       /* rms of gyro error  */
 
-#define     GYRO_TIME_CONSTANT      (100.0F)
-#define     ACC_TIME_CONSTANT       (100.0F)
+#define     GYRO_TIME_CONSTANT      (10.0F)
+#define     ACC_TIME_CONSTANT       (10.0F)
 #define     SIGMA_WIN               ((FLT)1.0e-6)
 #define     SIGMA_ACC               ((FLT)((5.0e-4) * 9.78032667 * (5.0e-4) * 9.78032667))
-#define     SIGMA_GYRO              ((FLT)(20.0 * PI / 180.0 / 3600 * 20.0 * PI / 180.0 / 3600))
+#define     SIGMA_GYRO              ((FLT)(2.0 * PI / 180.0 / 3600 * 2.0 * PI / 180.0 / 3600))
 
 static const DBL INIT_RMS[] = {SIG_PHI_E, SIG_PHI_N, SIG_PHI_U, SIG_GYRO, SIG_GYRO, SIG_GYRO, SIG_ACC, SIG_ACC, SIG_ACC};
 
