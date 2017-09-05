@@ -25,7 +25,7 @@ count = 1;
 for i = 1:length(data)
     type = data(i, 1);
     if type == SENSOR
-        Mag(count, :) = data(i, 9:11);
+        Mag_Raw(count, :) = data(i, 9:11);
         Acc(count, :) = data(i, 3:5);
         Gyro(count, :) = data(i, 6:8);
         count = count + 1;
@@ -33,7 +33,7 @@ for i = 1:length(data)
 end
 
 N = SampleRate*MagCalibrationTime;
-[Cali_B, Cali_V, Cali_W_inv, Cali_Error] = cali7eig(Mag(1:N, :));
+[Cali_B, Cali_V, Cali_W_inv, Cali_Error] = cali7eig(Mag_Raw(1:N, :));
 if Cali_Error < 0.05
     mag_calibration = 1;
 else
@@ -57,7 +57,7 @@ M = count;
 N = SampleRate*AlignmentTime;
 initial_alignment_flag = 0;
 acc_alignment = Acc(M:M+N, :);
-mag_alignment = Mag(M:M+N, :);
+mag_alignment = Mag_Raw(M:M+N, :);
 
 % calibrated mag data
 for i = 1 : length(mag_alignment)
@@ -126,7 +126,7 @@ Corr_time_gyro = 10;
 Corr_time_acc = 10;
 sigma_Win = 1.0e-6;
 sigma_acc = ((5.0e-4) * 9.78032667 * (5.0e-4) * 9.78032667);
-sigma_gyro = (20.0 * pi / 180.0 / 3600 * 20.0 * pi / 180.0 / 3600);
+sigma_gyro = (2 * pi / 180.0 / 3600 * 2 * pi / 180.0 / 3600);
 sigma_phim_e_n = 1.0*pi/180;
 sigma_phim_u = 1.0*pi/180;
 sigma_phim_gyro = 10*pi/180/3600;
@@ -187,13 +187,12 @@ for i = M:length(data)
     % SENSOR
     elseif type == SENSOR
         sensor_count = sensor_count + 1;
+        heading_gnss(sensor_count) = gnss_heading;
         
         %% AHRS
         Mag = data(i, 9:11);
         Acc = data(i, 3:5);
         Gyro = data(i, 6:8);
-        % calibrated mag data
-        Mag = Cali_W_inv*(Mag - Cali_V)';
         % smooth gyro data
         gyro_smooth_count = gyro_smooth_count + 1;
         if gyro_smooth_count > gyro_smooth_length
@@ -309,11 +308,11 @@ for i = M:length(data)
         I = eye(9, 9);
         PHIM = I + dt*F + 1/2*dt*dt*F*F;
 
-        %% predict
+        % predict
         x = PHIM*x;
         P = PHIM*P*PHIM' + Q;
 
-        %% update from acc
+        % update from acc
         H = zeros(3, 9);
         H(1, 2) = G_vector(3);
         H(2, 1) = -G_vector(3);
@@ -340,6 +339,39 @@ for i = M:length(data)
 
         [deltaCbn] = euler2dcm (x(3), x(2), x(1)); % (I+P)Cbn
         Cbn = deltaCbn*Cbn;
+        
+        % check mag condition
+        % calibrated mag data
+        Mag_tr = Cali_W_inv*(Mag - Cali_V)';
+        mag_update = 1;
+        mag_residual(sensor_count, :) = Mag_vector - Cbn*Mag_tr;
+        if abs(mag_residual(sensor_count, 1)) > 5
+            mag_update = 0;
+        end
+        
+        % update from mag
+        if mag_update
+        H = zeros(3, 9);
+        H(1, 2) = Mag_vector(3);
+        H(2, 1) = -Mag_vector(3);
+        H(2, 3) = Mag_vector(1);
+        H(3, 2) = -Mag_vector(1);
+
+        R = eye(3, 3);
+        R(1, 1) = 20^2;
+        R(2, 2) = 20^2;
+        R(3, 3) = 20^2;
+
+        mag_estimate = Cbn*Mag_tr;
+        Z = Mag_vector - mag_estimate;
+
+        K = P*H'*((H*P*H'+R)^-1);
+        x = x + K*(Z - H*x);
+        P = (I - K*H)*P;
+    
+        [deltCbn] = euler2dcm (x(3), x(2), x(1)); % (I+P)Cbn
+        Cbn = deltCbn*Cbn;
+        end
         acc_bias = acc_bias + x(7:9);
         gyro_bias = gyro_bias + x(4:6);
         x(1:9) = 0;
@@ -375,7 +407,7 @@ for i = M:length(data)
                  if move_count < mov_window_length
                      move_count = move_count + 1;
                      acc_det_mean = (acc_det_mean*(move_count-1) + step_det)/move_count;
-                 else 
+                 else
                      acc_det_mean = (acc_det_mean*(mov_window_length-1) + step_det)/mov_window_length;
                  end
 
@@ -445,8 +477,17 @@ figure;
 plot(heading_fusion*180/pi, 'r');
 hold on;
 plot(heading_pure*180/pi, 'b');
+plot(heading_gnss*180/pi, 'g');
 title('heading');
-legend('fusion', 'pure')
+legend('fusion', 'pure', 'gnss');
+
+figure;
+plot(mag_residual(:, 1), 'r');
+hold on;
+plot(mag_residual(:, 2), 'g');
+plot(mag_residual(:, 3), 'b');
+title('mag residual');
+legend('x', 'y', 'z');
 
 
 

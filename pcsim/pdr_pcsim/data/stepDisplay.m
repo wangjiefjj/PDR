@@ -8,4 +8,4 @@ stepDet = data(:, 2);
 
 figure;
 plot(time, stepDet);
-titile('step det');
+title('step det');
