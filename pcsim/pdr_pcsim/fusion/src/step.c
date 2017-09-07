@@ -60,7 +60,7 @@ U32 stepDetection(U32 utime, FLT stepDet, stepInfo_t* const pStepInfo)
     else
     {
         pStepInfo->stepDetAverage = GRAVITY;
-        pStepInfo->stepThreshold = (FLT)(0.05 * GRAVITY);
+        pStepInfo->stepThreshold = (FLT)(0.08 * GRAVITY);
     }
 
     // slop calculate
