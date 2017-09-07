@@ -50,6 +50,7 @@ static U32 initialAlignment(const FLT facc[], const FLT fmag[]);
 static void gyroSmooth(FLT fgyro[], FLT gyroBuffer[][CHN]);
 static U32 staticDetect(const FLT gyro[], const FLT acc[]);
 static void gyroCalibration(FLT gyroBias[]);
+static FLT magQualityControl(FLT mag[], const ahrsFixData_t* const pAhrsFixData);
 
 /*-------------------------------------------------------------------------*/
 /**
@@ -197,22 +198,11 @@ static void seDataProc(const sensorData_t* const pSensorData)
         quaternionIntegration(utime, fgyro, &AhrsFixData);
         if (PdrCtrl.uHeadingAlignFlag == 1 && MagCalibration.iValidMagCal != 0)
         {
-            FLT magVector[3] = {0.0};
-            FLT magEstimate[3] = {0.0};
-            FLT magResidual[3] = {0.0};
-            // check mag vector residual
-            magVector[0] = AhrsFixData.fB * cosf(AhrsFixData.fDelta);
-            magVector[2] = AhrsFixData.fB * sinf(AhrsFixData.fDelta);
-            for (i = X; i <= Z; i++)
-            {
-                magEstimate[i] = AhrsFixData.fCbn[i][X] * fmag[X] + AhrsFixData.fCbn[i][Y] * fmag[Y] + AhrsFixData.fCbn[i][Z] * fmag[Z];
-            }
+            FLT ferror = 0.0F;
 
-            magResidual[X] = magVector[X] - magEstimate[X];
-            magResidual[Y] = magVector[Y] - magEstimate[Y];
-            magResidual[Z] = magVector[Z] - magEstimate[Z];
-
-            if (fabs(magResidual[X]) > 5)
+            // mag calibration quality check
+            ferror = magQualityControl(fmag, &AhrsFixData);
+            if (fabs(ferror) > 5)
             {
 #ifdef DEBUG
                 //printf("mag calibration invalid in %dms\r\n", utime);
@@ -538,4 +528,38 @@ static void gyroCalibration(FLT gyroBias[])
         AlignGyroArray[i][Y] = 0;
         AlignGyroArray[i][Z] = 0;
     }
+}
+
+/*-------------------------------------------------------------------------*/
+/**
+  @brief    
+  @param    
+  @return   
+  
+
+ */
+/*--------------------------------------------------------------------------*/
+static FLT magQualityControl(FLT fmag[], const ahrsFixData_t* const pAhrsFixData)
+{
+    U32 i;
+    FLT ferror = 0.0F;
+    FLT magVector[3] = {0.0};
+    FLT magEstimate[3] = {0.0};
+    FLT magResidual[3] = {0.0};
+
+    // check mag vector residual
+    magVector[0] = AhrsFixData.fB * cosf(AhrsFixData.fDelta);
+    magVector[2] = AhrsFixData.fB * sinf(AhrsFixData.fDelta);
+    for (i = X; i <= Z; i++)
+    {
+        magEstimate[i] = AhrsFixData.fCbn[i][X] * fmag[X] + AhrsFixData.fCbn[i][Y] * fmag[Y] + AhrsFixData.fCbn[i][Z] * fmag[Z];
+    }
+
+    magResidual[X] = magVector[X] - magEstimate[X];
+    magResidual[Y] = magVector[Y] - magEstimate[Y];
+    magResidual[Z] = magVector[Z] - magEstimate[Z];
+
+    ferror = magResidual[X];
+
+    return ferror;
 }
