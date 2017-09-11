@@ -7,13 +7,10 @@
 #include "magcal.h"
 #include "ahrs.h"
 #include "step.h"
+#include "drFusion.h"
 
 #define     GYRO_BUFFER_LEN     (50)
 #define     AVE_NUM             (5)
-#define     RE                  (6378137.0)
-#define     esqu                (0.00669437999013)
-#define     RM(L)               (RE*(1-esqu)/pow((1-esqu*sin(L)*sin(L)),1.5))
-#define     RN(L)               (RE/sqrt(1-esqu*sin(L)*sin(L)))
 
 typedef struct pdrCtrl
 {
@@ -35,6 +32,7 @@ static magneticBuffer_t MagBuffer;
 static magCalibration_t MagCalibration;
 static ahrsFixData_t AhrsFixData;
 static kalmanInfo_t AhrsKalmanInfo;
+static kalmanInfo_t DrKalmanInfo;
 static stepInfo_t StepInfo;
 static pdrCtrl_t PdrCtrl;
 static pdrInfo_t PdrInfo;
@@ -78,6 +76,12 @@ U32 pdrNavInit()
     if (ahrsKalmanInit(&AhrsKalmanInfo))
     {
         printf("ahrs kalman init failed!\r\n");
+        return -1;
+    }
+
+    if (drKalmanInit(&DrKalmanInfo))
+    {
+        printf("dr kalman init failed!\r\n");
         return -1;
     }
 
@@ -276,6 +280,12 @@ static void seDataProc(const sensorData_t* const pSensorData)
 /*--------------------------------------------------------------------------*/
 static void gnssDataProc(const gnssData_t* const pGnssData)
 {
+    drFusionData_t drFusionData;
+    FLT gnssVel = 0.0F;
+    FLT fq[4];
+
+    memset(&drFusionData, 0, sizeof(drFusionData_t));
+
     if (PdrCtrl.uPdrNavFlag != 1)
     {
         if (PdrCtrl.uHeadingAlignFlag == 1 && PdrCtrl.uHorizonAlignFlag == 1)
@@ -286,6 +296,47 @@ static void gnssDataProc(const gnssData_t* const pGnssData)
             PdrInfo.fLongitude = pGnssData->fLongitude;
             PdrInfo.fAltitude = pGnssData->fAltitude;
         }
+        else
+        {
+            // initial alignment not complete
+        }
+
+        return;
+    }
+
+    // gnss aiding process
+    gnssVel = sqrtf(pGnssData->fVelE * pGnssData->fVelE + pGnssData->fVelN * pGnssData->fVelN + pGnssData->fVelU * pGnssData->fVelU);
+    if (gnssVel > 1)
+    {
+        drFusionData.utime = pGnssData->uTime;
+        drFusionData.fGnssLatitude = pGnssData->fLatitude;
+        drFusionData.fGnssLongitude = pGnssData->fLongitude;
+        drFusionData.fGnssHeading = pGnssData->fHeading;
+        drFusionData.fPdrLatitude = PdrInfo.fLatitude;
+        drFusionData.fPdrLongitude = PdrInfo.fLongitude;
+        drFusionData.fPdrHeading = AhrsFixData.fPsiPl;
+        drKalmanExec(&DrKalmanInfo, &drFusionData);
+
+        // update pdr information
+        PdrInfo.uTime = drFusionData.utime;
+        PdrInfo.fLatitude = drFusionData.fPdrLatitude;
+        PdrInfo.fLongitude = drFusionData.fPdrLongitude;
+
+        // update ahrs information
+        //AhrsFixData.fPsiPl = drFusionData.fPdrHeading;
+        //euler2dcm(AhrsFixData.fCbn, AhrsFixData.fPsiPl, AhrsFixData.fThePl, AhrsFixData.fPhiPl);
+        //euler2q(fq, AhrsFixData.fPsiPl, AhrsFixData.fThePl, AhrsFixData.fPhiPl);
+        //memcpy(AhrsFixData.fCnb, AhrsFixData.fCbn, sizeof(AhrsFixData.fCnb));
+        //f3x3matrixTranspose(AhrsFixData.fCnb);
+        //AhrsFixData.fqPl.q0 = fq[0];
+        //AhrsFixData.fqPl.q1 = fq[1];
+        //AhrsFixData.fqPl.q2 = fq[2];
+        //AhrsFixData.fqPl.q3 = fq[3];
+
+#ifdef DEBUG
+        printf("gnss aiding occur in %dms.\r\n", drFusionData.utime);
+        fprintf(FpOutput, "%d, %.8f, %.8f, %.8f\n", PdrInfo.uTime, PdrInfo.fLatitude*RAD2DEG, PdrInfo.fLongitude*RAD2DEG, PdrInfo.fAltitude);
+#endif
     }
 }
 

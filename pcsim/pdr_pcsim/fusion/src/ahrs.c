@@ -332,48 +332,7 @@ U32 quaternionIntegration (U32 utime, const FLT gyro[], ahrsFixData_t* const pAh
 /*--------------------------------------------------------------------------*/
 U32 ahrsKalmanInit(kalmanInfo_t* const pKalmanInfo)
 {
-    U32 sizeofDBL = sizeof(DBL);
-
-    pKalmanInfo->uStateNum = STATE_NUM;
-    pKalmanInfo->uUdNum = STATE_NUM * (STATE_NUM + 1) / 2;
-
-    // malloc state array
-    pKalmanInfo->pStateX = (DBL *)malloc(sizeofDBL * pKalmanInfo->uStateNum);
-    if (pKalmanInfo->pStateX == NULL)
-    {
-        return -1;
-    }
-    memset(pKalmanInfo->pStateX, 0, sizeofDBL * pKalmanInfo->uStateNum);
-
-    // malloc ud array
-    pKalmanInfo->pUd = (DBL *)malloc(sizeofDBL * pKalmanInfo->uUdNum);
-    if (pKalmanInfo->pUd == NULL)
-    {
-        free(pKalmanInfo->pStateX);
-        return -1;
-    }
-    memset(pKalmanInfo->pUd, 0, sizeofDBL * pKalmanInfo->uUdNum);
-
-    // malloc q array
-    pKalmanInfo->pQd = (DBL **)mallocArray2D_DBL(pKalmanInfo->uStateNum, pKalmanInfo->uStateNum);
-    if (pKalmanInfo->pQd == NULL)
-    {
-        free(pKalmanInfo->pStateX);
-        free(pKalmanInfo->pUd);
-        return -1;
-    }
-
-    // malloc phi array
-    pKalmanInfo->pPhim = (DBL **)mallocArray2D_DBL(pKalmanInfo->uStateNum, pKalmanInfo->uStateNum);
-    if (pKalmanInfo->pPhim == NULL)
-    {
-        free(pKalmanInfo->pStateX);
-        free(pKalmanInfo->pUd);
-        freeArray2D_DBL(pKalmanInfo->pQd, pKalmanInfo->uStateNum, pKalmanInfo->uStateNum);
-        return -1;
-    }
-
-    UDInit(pKalmanInfo->pUd, pKalmanInfo->uUdNum, INIT_RMS, pKalmanInfo->uStateNum);
+    kalmanInit(pKalmanInfo, STATE_NUM, INIT_RMS);
 
     return 0;
 }

@@ -176,6 +176,10 @@
 				>
 			</File>
 			<File
+				RelativePath="..\..\fusion\src\drFusion.c"
+				>
+			</File>
+			<File
 				RelativePath="..\..\fusion\src\kalman.c"
 				>
 			</File>
@@ -207,6 +211,10 @@
 			>
 			<File
 				RelativePath="..\..\fusion\inc\ahrs.h"
+				>
+			</File>
+			<File
+				RelativePath="..\..\fusion\inc\drFusion.h"
 				>
 			</File>
 			<File

@@ -5,6 +5,7 @@
 #include "misc.h"
 
 
+static U32 UDInit(DBL *pud, U32 stateNum, const DBL rms[]);
 
 /*-------------------------------------------------------------------------*/
 /**
@@ -15,84 +16,51 @@
 
  */
 /*--------------------------------------------------------------------------*/
-U32 kalmanInit(kalmanInfo_t *pkalmanInfo, U32 ustateNum)
+U32 kalmanInit(kalmanInfo_t *pKalmanInfo, U32 uStateNum, const DBL rms[])
 {
     U32 sizeofDBL = sizeof(DBL);
 
-    pkalmanInfo->uStateNum = ustateNum;
-    pkalmanInfo->uUdNum = ustateNum * (ustateNum + 1) / 2;
+    pKalmanInfo->uStateNum = uStateNum;
+    pKalmanInfo->uUdNum = uStateNum * (uStateNum + 1) / 2;
 
     // malloc state array
-    pkalmanInfo->pStateX = (DBL *)malloc(sizeofDBL * pkalmanInfo->uStateNum);
-    if (pkalmanInfo->pStateX == NULL)
+    pKalmanInfo->pStateX = (DBL *)malloc(sizeofDBL * pKalmanInfo->uStateNum);
+    if (pKalmanInfo->pStateX == NULL)
     {
         return -1;
     }
-    memset(pkalmanInfo->pStateX, 0, sizeofDBL * pkalmanInfo->uStateNum);
+    memset(pKalmanInfo->pStateX, 0, sizeofDBL * pKalmanInfo->uStateNum);
     
     // malloc ud array
-    pkalmanInfo->pUd = (DBL *)malloc(sizeofDBL * pkalmanInfo->uUdNum);
-    if (pkalmanInfo->pUd == NULL)
+    pKalmanInfo->pUd = (DBL *)malloc(sizeofDBL * pKalmanInfo->uUdNum);
+    if (pKalmanInfo->pUd == NULL)
     {
-        free(pkalmanInfo->pStateX);
+        free(pKalmanInfo->pStateX);
         return -1;
     }
-    memset(pkalmanInfo->pUd, 0, sizeofDBL * pkalmanInfo->uUdNum);
+    memset(pKalmanInfo->pUd, 0, sizeofDBL * pKalmanInfo->uUdNum);
 
     // malloc q array
-    pkalmanInfo->pQd = (DBL **)mallocArray2D_DBL(pkalmanInfo->uStateNum, pkalmanInfo->uStateNum);
-    if (pkalmanInfo->pQd == NULL)
+    pKalmanInfo->pQd = (DBL **)mallocArray2D_DBL(pKalmanInfo->uStateNum, pKalmanInfo->uStateNum);
+    if (pKalmanInfo->pQd == NULL)
     {
-        free(pkalmanInfo->pStateX);
-        free(pkalmanInfo->pUd);
+        free(pKalmanInfo->pStateX);
+        free(pKalmanInfo->pUd);
         return -1;
     }
 
     // malloc phi array
-    pkalmanInfo->pPhim = (DBL **)mallocArray2D_DBL(pkalmanInfo->uStateNum, pkalmanInfo->uStateNum);
-    if (pkalmanInfo->pPhim == NULL)
+    pKalmanInfo->pPhim = (DBL **)mallocArray2D_DBL(pKalmanInfo->uStateNum, pKalmanInfo->uStateNum);
+    if (pKalmanInfo->pPhim == NULL)
     {
-        free(pkalmanInfo->pStateX);
-        free(pkalmanInfo->pUd);
-        freeArray2D_DBL(pkalmanInfo->pQd, pkalmanInfo->uStateNum, pkalmanInfo->uStateNum);
+        free(pKalmanInfo->pStateX);
+        free(pKalmanInfo->pUd);
+        freeArray2D_DBL(pKalmanInfo->pQd, pKalmanInfo->uStateNum, pKalmanInfo->uStateNum);
         return -1;
     }
 
-    return 0;
-}
-
-/*-------------------------------------------------------------------------*/
-/**
-  @brief    
-  @param    
-  @return   
-  
-
- */
-/*--------------------------------------------------------------------------*/
-U32 UDInit(DBL *pud, U32 len1, const DBL rms[], U32 len2)
-{
-    U32 i = 0;
-    U32 j = 0;
-    U32 k = 1;
-
-    for (i = 0; i < len1; i++)
-    {
-        if (i == j)
-        {
-            if (k > len2)
-            {
-                return -1;
-            }
-            pud[i] = rms[k-1] * rms[k-1];
-            k++;
-            j = k * (k + 1) / 2 - 1;
-        }
-        else
-        {
-            pud[i] = 0;
-        }
-    }
+    // ud init
+    UDInit(pKalmanInfo->pUd, pKalmanInfo->uStateNum, rms);
 
     return 0;
 }
@@ -194,3 +162,41 @@ void predict(kalmanInfo_t* const pkalmanInfo)
     freeArray2D_DBL(pw, stateNum, stateNum2);
 }
 
+/*-------------------------------------------------------------------------*/
+/**
+  @brief    
+  @param    
+  @return   
+  
+
+ */
+/*--------------------------------------------------------------------------*/
+static U32 UDInit(DBL *pud, U32 stateNum, const DBL rms[])
+{
+    U32 i = 0;
+    U32 j = 0;
+    U32 k = 1;
+
+    U32 len1 = stateNum * (stateNum + 1) / 2;
+    U32 len2 = stateNum;
+
+    for (i = 0; i < len1; i++)
+    {
+        if (i == j)
+        {
+            if (k > len2)
+            {
+                return -1;
+            }
+            pud[i] = rms[k-1] * rms[k-1];
+            k++;
+            j = k * (k + 1) / 2 - 1;
+        }
+        else
+        {
+            pud[i] = 0;
+        }
+    }
+
+    return 0;
+}

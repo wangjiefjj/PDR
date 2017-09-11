@@ -19,6 +19,11 @@ extern "C" {
 #define     RAD2DEG         ((FLT)180.0/(FLT)PI)
 #define     GRAVITY         ((FLT)9.80665)
 
+#define     RE              (6378137.0)
+#define     esqu            (0.00669437999013)
+#define     RM(L)           (RE*(1-esqu)/pow((1-esqu*sin(L)*sin(L)),1.5))
+#define     RN(L)           (RE/sqrt(1-esqu*sin(L)*sin(L)))
+
     DBL** mallocArray2D_DBL(U32 row, U32 col);
     U32 freeArray2D_DBL(DBL **pmatrix, U32 row, U32 col);
     U32 computeMeanStd(FLT* const mean, FLT* const std, const FLT array[][CHN], U32 count);

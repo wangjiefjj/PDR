@@ -18,8 +18,7 @@ extern "C" {
     } kalmanInfo_t;
 
 
-    U32 kalmanInit(kalmanInfo_t *pkalmanInfo, U32 ustateNum);
-    U32 UDInit(DBL *pud, U32 len1, const DBL rms[], U32 len2);
+    U32 kalmanInit(kalmanInfo_t *pkalmanInfo, U32 ustateNum, const DBL rms[]);
     void predict(kalmanInfo_t* const pkalmanInfo);
 
 #ifdef __cplusplus
