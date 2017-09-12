@@ -7,10 +7,10 @@
 #define     MEAS_GNSS_NUM           (3)
 #define     SIG_LAT                 (0.1)                       /* rms of pitch and latitude range (m) */
 #define     SIG_LON                 (0.1)                       /* rms of pitch and longitude range (m) */
-#define     SIG_HEADING             (10.0*PI/180)               /* rms of pitch and heading (rad) */
-#define     SIGMA_LAT               (0.2 * 0.2)
-#define     SIGMA_LON               (0.2 * 0.2)
-#define     SIGMA_HEADING           (10.0*PI/180 * 10.0*PI/180)
+#define     SIG_HEADING             (10.0*PI/180)                /* rms of pitch and heading (rad) */
+#define     SIGMA_LAT               (0.1 * 0.1)
+#define     SIGMA_LON               (0.1 * 0.1)
+#define     SIGMA_HEADING           (5.0*PI/180 * 5.0*PI/180)
 
 static const DBL INIT_RMS[] = {SIG_LAT, SIG_LON, SIG_HEADING};
 
@@ -121,9 +121,9 @@ static U32 gnssMeasUpdate(kalmanInfo_t* const pKalmanInfo, const drFusionData_t*
     h[1][1] = 1.0F;
     h[2][2] = 1.0F;
 
-    r[0] = 15 * 15;
-    r[1] = 15 * 15;
-    r[2] = 5 * DEG2RAD * 5 * DEG2RAD;
+    r[0] = 20 * 20;
+    r[1] = 20 * 20;
+    r[2] = 10 * DEG2RAD * 10 * DEG2RAD;
 
     for (i = 0; i < MEAS_GNSS_NUM; i++)
     {
@@ -166,24 +166,23 @@ static U32 gnssMeasUpdate(kalmanInfo_t* const pKalmanInfo, const drFusionData_t*
 /*--------------------------------------------------------------------------*/
 static void errCorrection(kalmanInfo_t* const pKalmanInfo, drFusionData_t* const pFusionData)
 {
-    U32 i = 0;
-
     pFusionData->fPdrLatitude = pFusionData->fPdrLatitude + pKalmanInfo->pStateX[0]/RM(pFusionData->fGnssLatitude);
     pFusionData->fPdrLongitude = pFusionData->fPdrLongitude + pKalmanInfo->pStateX[1]/RN(pFusionData->fGnssLatitude);
-    pFusionData->fPdrHeading = (FLT)(pFusionData->fPdrHeading + pKalmanInfo->pStateX[2]);
+    pKalmanInfo->pStateX[0] = 0.0F;
+    pKalmanInfo->pStateX[1] = 0.0F;
 
-    if (pFusionData->fPdrHeading > PI)
+    if (fabs(pKalmanInfo->pStateX[2]) < 10*DEG2RAD)
     {
-        pFusionData->fPdrHeading -= 2*PI;
-    }
-    if (pFusionData->fPdrHeading < -PI)
-    {
-        pFusionData->fPdrHeading += 2*PI;
-    }
+        pFusionData->fPdrHeading = (FLT)(pFusionData->fPdrHeading + pKalmanInfo->pStateX[2]);
 
-    // clear x
-    for (i = 0; i < STATE_NUM; i++)
-    {
-        pKalmanInfo->pStateX[i] = 0.0;
+        if (pFusionData->fPdrHeading > PI)
+        {
+            pFusionData->fPdrHeading -= 2*PI;
+        }
+        if (pFusionData->fPdrHeading < -PI)
+        {
+            pFusionData->fPdrHeading += 2*PI;
+        }
+        pKalmanInfo->pStateX[2] = 0.0;
     }
 }

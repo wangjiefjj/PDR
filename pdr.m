@@ -191,7 +191,7 @@ for i = M:length(data)
         gnss_vel_det = norm(gnss_vel);
         if gnss_vel_det > 1.5
             pdr_phim = eye(3, 3);
-            sigma_q = [0.1, 0.1, 4/180*pi];
+            sigma_q = [0.1, 0.1, 5/180*pi];
             pdr_q = diag(sigma_q.^2);
 
             % predict
@@ -211,11 +211,11 @@ for i = M:length(data)
             end
             pdr_z = [gnss_N - pdr_N; gnss_E - pdr_E; gnss_heading - yaw];
             pdr_h = eye(3, 3);
-            sigma_r = [15, 15, 10/180*pi];
+            sigma_r = [20, 20, 10/180*pi];
             pdr_r = diag(sigma_r.^2);
             pdr_i = eye(3, 3);
             pdr_k = pdr_p*pdr_h'*((pdr_h*pdr_p*pdr_h'+pdr_r)^-1);
-            pdr_x = pdr_x + pdr_k*(pdr_z - pdr_h*pdr_x)
+            pdr_x = pdr_x + pdr_k*(pdr_z - pdr_h*pdr_x);
             pdr_p = (pdr_i - pdr_k*pdr_h)*pdr_p;
             
             pdr_N = pdr_N + pdr_x(1);
@@ -224,7 +224,7 @@ for i = M:length(data)
             pdr_longitude = pdr_E / RN;
             pdr_x(1:2,:) = 0;
 
-            if pdr_x(3) < 5*pi/180;
+            if abs(pdr_x(3)) < 10*pi/180
                 yaw = yaw + pdr_x(3);
                 if yaw > pi
                     yaw = yaw - 2*pi;
@@ -508,19 +508,19 @@ for i = M:length(data)
         %% PDR estimate latitude and longitude
         if step_detect_flag ~= 0
             step_detect_flag = 0;
-                step_heading = yaw;
-                % calculate the step trajectory
-                RM = RE * (1 - esqu) / ((1 - esqu * sin(pdr_latitude) * sin(pdr_latitude))^1.5);
-                RN = RE / (sqrt(1 - esqu * sin(pdr_latitude) * sin(pdr_latitude)));
+            step_heading = yaw;
+            % calculate the step trajectory
+            RM = RE * (1 - esqu) / ((1 - esqu * sin(pdr_latitude) * sin(pdr_latitude))^1.5);
+            RN = RE / (sqrt(1 - esqu * sin(pdr_latitude) * sin(pdr_latitude)));
 
-                pdr_latitude = pdr_latitude + step_length*cos(step_heading)/RM;
-                pdr_longitude = pdr_longitude + step_length*sin(step_heading)/(RN*cos(pdr_latitude));
-                pdr_altitude = gnss_altitude;
-                
-                % store all step trajectory
-                pdr_latitude_array(step_count) = pdr_latitude*180/pi;
-                pdr_longitude_array(step_count) = pdr_longitude*180/pi;
-                pdr_altitude_array(step_count) = pdr_altitude;
+            pdr_latitude = pdr_latitude + step_length*cos(step_heading)/RM;
+            pdr_longitude = pdr_longitude + step_length*sin(step_heading)/(RN*cos(pdr_latitude));
+            pdr_altitude = gnss_altitude;
+
+            % store all step trajectory
+            pdr_latitude_array(step_count) = pdr_latitude*180/pi;
+            pdr_longitude_array(step_count) = pdr_longitude*180/pi;
+            pdr_altitude_array(step_count) = pdr_altitude;
         end
     end
 
