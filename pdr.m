@@ -19,32 +19,21 @@ SampleRate = 50;   % Hz
 AlignmentTime = 2; % second
 MagCalibrationTime = 10;   % second
 
+
 %% prepare data for mag calibration & initial alignment
 count = 1;
 for i = 1:length(data)
     type = data(i, 1);
     if type == SENSOR
-        Mag(count, :) = data(i, 9:11);
+        Mag_Raw(count, :) = data(i, 9:11);
         Acc(count, :) = data(i, 3:5);
         Gyro(count, :) = data(i, 6:8);
         count = count + 1;
     end
 end
 
-% disp gyro data
-if 0
-    figure;
-    plot(Gyro(:, 1), 'r');
-%     hold on;
-%     plot(Gyro(:, 2), 'g');
-%     plot(Gyro(:, 3), 'b');
-    legend('X', 'Y', 'Z');
-    title('gyro data');
-end
-
-% mag_calibrated = inv(W)*(mag_raw - V)
 N = SampleRate*MagCalibrationTime;
-[Cali_B, Cali_V, Cali_W_inv, Cali_Error] = cali7eig(Mag(1:N, :));
+[Cali_B, Cali_V, Cali_W_inv, Cali_Error] = cali7eig(Mag_Raw(1:N, :));
 if Cali_Error < 0.05
     mag_calibration = 1;
 else
@@ -68,7 +57,7 @@ M = count;
 N = SampleRate*AlignmentTime;
 initial_alignment_flag = 0;
 acc_alignment = Acc(M:M+N, :);
-mag_alignment = Mag(M:M+N, :);
+mag_alignment = Mag_Raw(M:M+N, :);
 
 % calibrated mag data
 for i = 1 : length(mag_alignment)
@@ -101,6 +90,8 @@ if initial_alignment_flag == 1
     Cnb_initial = ecompass_ned([g_x_mean, g_y_mean, g_z_mean], [mag_x_mean, mag_y_mean, mag_z_mean]);
     Cbn_initial = Cnb_initial';
     [yaw_initial, pitch_initial, roll_initial] = dcm2euler(Cbn_initial);
+    q = euler2q(yaw_initial, pitch_initial, roll_initial);
+    q_pure = q;
     % compute the geomagnetic inclination angle
     geoB = norm([mag_x_mean, mag_y_mean, mag_z_mean]);
     gmod = norm([g_x_mean, g_y_mean, g_z_mean]);
@@ -113,48 +104,45 @@ if initial_alignment_flag == 1
     end
 end
 
-%% sensor fusion variable
-
+%% general variable
 Ge = 9.80665;
+RE = 6378137.0;
+esqu = 0.00669437999013;
 G_vector = [0, 0, Ge]';
+sensor_count = 0;
+
+%% ahrs variable
 gyro_bias = zeros(3, 1);
 acc_bias = zeros(3, 1);
-mag_jamming = zeros(3, 1);
-Cnb = eye(3, 3);
-Cbn = eye(3, 3);
+gyro_smooth_count = 0;
+gyro_smooth_length = 50;
+gyro_smooth_array = zeros(gyro_smooth_length, 3);
 
-StateNum = 12;
-MeasNumG = 3;
-MeasNumM = 3;
-x = zeros(StateNum, 1); % roll, pitch, yaw, gyro_bias_x, gyro_bias_y, gyro_bias_z, acc_bias_x, acc_bias_y, acc_bias_z, mag_jamming_x, mag_jamming_y, mag_jamming_z
-Corr_time_gyro = 1;
-Corr_time_acc = 1;
-Corr_time_mag = 1;
+x = zeros(9, 1); % roll, pitch, yaw, gyro_bias_x, gyro_bias_y, gyro_bias_z, acc_bias_x, acc_bias_y, acc_bias_z
+F = zeros(9, 9);
+PHIM = zeros(9, 9);
+qdt = zeros(9, 9);
+Q = zeros(9, 9);
+G = zeros(9, 9);
+Corr_time_gyro = 10;
+Corr_time_acc = 10;
 sigma_Win = 1.0e-6;
-sigma_gyro_1 = (2*pi/180/3600)^2;   % Markov process
-sigma_gyro_2 = (10*pi/180/3600)^2;   % Random walk
-sigma_acc = ((5.0e-2)*Ge)^2;  % Markov process
-sigma_mag = 0.1*0.1;  % Markov process
-
-error_phim_e = 1.0*pi/180;
-error_phim_n = 1.0*pi/180;
-error_phim_u = 1.0*pi/180;
-error_gyro = 1000*pi/180/3600;
-error_acc = 0.3;
-error_mag_jamming = 5;
-P = zeros(StateNum, StateNum);
-P(1, 1) = error_phim_e^2;
-P(2, 2) = error_phim_n^2;
-P(3, 3) = error_phim_u^2;
-P(4, 4) = error_gyro^2;
-P(5, 5) = error_gyro^2;
-P(6, 6) = error_gyro^2;
-P(7, 7) = error_acc^2;
-P(8, 8) = error_acc^2;
-P(9, 9) = error_acc^2;
-P(10, 10) = error_mag_jamming^2;
-P(11, 11) = error_mag_jamming^2;
-P(12, 12) = error_mag_jamming^2;
+sigma_acc = ((5.0e-4) * 9.78032667 * (5.0e-4) * 9.78032667);
+sigma_gyro = (2 * pi / 180.0 / 3600 * 2 * pi / 180.0 / 3600);
+sigma_phim_e_n = 1.0*pi/180;
+sigma_phim_u = 1.0*pi/180;
+sigma_phim_gyro = 10*pi/180/3600;
+sigma_phim_acc = 0.3;
+P = eye(9, 9);
+P(1, 1) = sigma_phim_e_n^2;
+P(2, 2) = sigma_phim_e_n^2;
+P(3, 3) = sigma_phim_u^2;
+P(4, 4) = sigma_phim_gyro^2;
+P(5, 5) = sigma_phim_gyro^2;
+P(6, 6) = sigma_phim_gyro^2;
+P(7, 7) = sigma_phim_acc^2;
+P(8, 8) = sigma_phim_acc^2;
+P(9, 9) = sigma_phim_acc^2;
 
 %% step detection variable
 step_latitude = 0;
@@ -174,299 +162,69 @@ delta_step_time = 0;
 step_lock_time = 0.3;
 step_count = 0;
 step_detect_flag = 0;
-step_length = 0.7;
-
-%% gnss variable
-RE = 6378137.0;
-esqu = 0.00669437999013;
-
-%% pdr variable
+step_length = 0.8;
 step_start_flag = 0;
 
 %% pdr gnss fusion variable
 sigma_p = [0.1, 0.1, 10];
 pdr_p = diag(sigma_p);
+pdr_x = zeros(3, 1);
 
-%% step length variable
-step_adjust_window = 10;
-step_adjust_count = 0;
-
-%% main loop start
-gnss_count = 1;
-sensor_count = 0;
-gyro_smooth_count = 1;
-gyro_smooth_number = 10;
-gyro_smooth_array = zeros(gyro_smooth_number, 3);
-heading_smooth_count = 1;
-heading_smooth_number = 5;
-heading_smooth_array = zeros(heading_smooth_number, 1);
-
+%% main loop
 for i = M:length(data)
     type = data(i, 1);
     time_tag = data(i, 2);
-    % GNSS
+    %% GNSS aiding
     if type == GNSS
         gnss_latitude = data(i, 3);
         gnss_longitude = data(i, 4);
         gnss_altitude = data(i, 5);
         gnss_vel = data(i, 6:8);
         gnss_heading = data(i, 9);
-        gnss_heading_array(gnss_count) = data(i, 9);
-        if gnss_count == 1
-            q = euler2q(yaw_initial, pitch_initial, roll_initial);
-            qlpf = q;
-            qlpf_6D = q;
-            sensor_heading_9D(1) = yaw_initial;
-            sensor_heading_6D(1) = yaw_initial;
-            mag_inclination(1) = geo_inclination;
-            mag_inclination_lpf = geo_inclination;
-            % initial the latitude and longitude
+        if step_start_flag ~= 1
             step_start_flag = 1;
             pdr_latitude = gnss_latitude;
             pdr_longitude = gnss_longitude;
             pdr_altitude = gnss_altitude;
         end
-        if sensor_count > 0
-            % sensor fusion
-            dt = 1/SampleRate*sensor_count;
-            Acc = mean(acc_array);
-            Mag = mean(mag_array);
-            
-           %% mag + acc heading estimation
-            Cnb_6D = ecompass_ned(-Acc, Mag);
-            Cbn_6D = Cnb_6D';
-            [yaw_6D, pitch_6D, roll_6D] = dcm2euler(Cbn_6D);
-            q_6D = euler2q(yaw_6D, pitch_6D, roll_6D);
-            q_6D = q_norm(q_6D);
-            % low pass filter for quaternion
-            % set low pass filter constant with maximum value 1.0 (all pass) decreasing to 0.0 (increasing low pass)
-            lpf_time = 5;   % time constant (second)
-            flpf = dt/lpf_time;
-            deltaq = qconjgAxB(qlpf_6D, q_6D);
-            if deltaq(1) < 0
-                deltaq = -deltaq;
-            end
-            ftemp = flpf + (1-flpf)*(1-deltaq(1));
-            deltaq = ftemp*deltaq;
-            deltaq(1) = sqrt(1 - norm(deltaq(2:4))^2);
-            qlpf_6D = qAxB(qlpf_6D, deltaq);
-            qlpf_6D = q_norm(qlpf_6D);
-            % convert to euler
-            Cbn_6D = q2dcm(qlpf_6D);
-            [sensor_heading_6D(gnss_count), ~, ~] = dcm2euler(Cbn_6D);
-            
-           %% gyro + acc + mag heading estimation 
-            if 1
-            % kalman sensor fusion
-            Cbn = q2dcm(q);
-
-            Fg = diag([-1/Corr_time_gyro, -1/Corr_time_gyro, -1/Corr_time_gyro]);
-            Fa = diag([-1/Corr_time_acc, -1/Corr_time_acc, -1/Corr_time_acc]);
-            Fm = diag([-1/Corr_time_mag, -1/Corr_time_mag, -1/Corr_time_mag]);
-            Fnull = zeros(3, 3);
-
-            F = [Fnull, -Cbn, Fnull, Fnull;
-                 Fnull, Fg,   Fnull, Fnull;
-                 Fnull, Fnull,Fa,    Fnull;
-                 Fnull, Fnull,Fnull, Fm  ];
-
-            qdt = diag([sigma_Win, sigma_Win, sigma_Win, sigma_gyro_1, sigma_gyro_1, sigma_gyro_1, sigma_gyro_2,...
-                        sigma_gyro_2, sigma_gyro_2, sigma_acc, sigma_acc, sigma_acc, sigma_mag, sigma_mag, sigma_mag]);
-            I = eye(3, 3);
-            Gnull = zeros(3, 3);
-            G = [-Cbn,    Gnull,  -Cbn,  Gnull,  Gnull;
-                  Gnull,      I,  Gnull, Gnull,  Gnull;
-                  Gnull,  Gnull,  Gnull,     I,  Gnull;
-                  Gnull,  Gnull,  Gnull, Gnull,      I];
-            % Q matrix discretization-2 order
-            Q_basic = G*qdt*G';
-            M1 = Q_basic;
-            M2 = Q_basic*F'+F*Q_basic;
-            Q = dt*M1 + 1/2*dt*dt*M2;
-
-            % PHIM matrix discretization-2 order
-            I = eye(StateNum, StateNum);
-            PHIM = I + dt*F + 1/2*dt*dt*F*F;
+        
+        gnss_vel_det = norm(gnss_vel);
+        if gnss_vel_det > 1.5
+            pdr_phim = eye(3, 3);
+            sigma_q = [0.1, 0.1, 4/180*pi];
+            pdr_q = diag(sigma_q.^2);
 
             % predict
-            x = PHIM*x;
-            P = PHIM*P*PHIM' + Q;
-            
-            % update from acc
-            H = zeros(3, StateNum);
-            H(1, 2) = G_vector(3);
-            H(2, 1) = -G_vector(3);
-            H(1, 7) = Cbn(1, 1);
-            H(1, 8) = Cbn(1, 2);
-            H(1, 9) = Cbn(1, 3);
-            H(2, 7) = Cbn(2, 1);
-            H(2, 8) = Cbn(2, 2);
-            H(2, 9) = Cbn(2, 3);
-            H(3, 7) = Cbn(3, 1);
-            H(3, 8) = Cbn(3, 2);
-            H(3, 9) = Cbn(3, 3);
+            pdr_x = pdr_phim*pdr_x;
+            pdr_p = pdr_phim*pdr_p*pdr_phim' + pdr_q;
 
-            R = eye(MeasNumG, MeasNumG);
-            R(1, 1) = 5^2;
-            R(2, 2) = 5^2;
-            R(3, 3) = 5^2;
-
-            acc_liner_b = zeros(3, 1);
-            g_estimate = Cbn*(acc_bias - Acc' + acc_liner_b);
-            Z = G_vector - g_estimate;
-            K = P*H'*((H*P*H'+R)^-1);
-            x = x + K*(Z - H*x);
-            P = (I - K*H)*P;
-
-            [deltaCbn] = euler2dcm (x(3), x(2), x(1)); % (I+P)Cbn
-            Cbn = deltaCbn*Cbn;
-            
-            % update from mag
-            H = zeros(3, StateNum);
-            H(1, 2) = Mag_vector(3);
-            H(2, 1) = -Mag_vector(3);
-            H(2, 3) = Mag_vector(1);
-            H(3, 2) = -Mag_vector(1);
-            H(1, 10) = -Cbn(1, 1);
-            H(1, 11) = -Cbn(1, 2);
-            H(1, 12) = -Cbn(1, 3);
-            H(2, 10) = -Cbn(2, 1);
-            H(2, 11) = -Cbn(2, 2);
-            H(2, 12) = -Cbn(2, 3);
-            H(3, 10) = -Cbn(3, 1);
-            H(3, 11) = -Cbn(3, 2);
-            H(3, 12) = -Cbn(3, 3);
-
-            R = eye(3, 3);
-            R(1, 1) = 20^2;
-            R(2, 2) = 20^2;
-            R(3, 3) = 20^2;
-
-            mag_estimate = Cbn*Mag';
-            Z = Mag_vector - mag_estimate;
-
-            K = P*H'*((H*P*H'+R)^-1);
-            x = x + K*(Z - H*x);
-            
-            % mag jamming check
-            mag_jamming_b = x(10:12);
-            if norm(mag_jamming_b) > 2*Cali_B^2
-                disp('mag jamming occur');
-            else
-                P = (I - K*H)*P;
-                [deltaCbn] = euler2dcm (x(3), x(2), x(1)); % (I+P)Cbn
-                Cbn = deltaCbn*Cbn;
-                [yaw, pitch, roll] = dcm2euler(Cbn);   % gyro + acc + mag estimation
-                q = euler2q(yaw, pitch, roll);
-                q = q_norm(q);
-
-                % mag vector correction
-                mag_jamming_n = Cbn*mag_jamming_b;
-                mag_vector_temp = Mag_vector - mag_jamming_n;
-                geoB_temp = sqrt(mag_vector_temp(1)^2 + mag_vector_temp(3)^2);
-                sindelta = mag_vector_temp(3)/geoB_temp;
-                cosdelta = mag_vector_temp(1)/geoB_temp;
-                SINDELTAMAX = 0.9063078; % sin of max +ve geomagnetic inclination angle: here 65.0 deg
-                COSDELTAMAX = 0.4226183; % cos of max +ve geomagnetic inclination angle: here 65.0 deg
-                if sindelta > SINDELTAMAX || sindelta < -SINDELTAMAX
-                    sindelta = SINDELTAMAX;
-                    cosdelta = COSDELTAMAX;
-                end
-                geo_inclination = asin(sindelta);
-                % low pass filter
-                if 1
-                    lpf_time = 5;   % time constant (second)
-                    flpf = dt/lpf_time;
-                    mag_inclination_lpf = mag_inclination_lpf + flpf * (geo_inclination - mag_inclination_lpf);
-                    geo_inclination = mag_inclination_lpf;
-                end
-                mag_inclination(gnss_count) = geo_inclination;
-                if mag_calibration == 0
-                    Cali_B = geoB_temp;
-                end
-                Mag_vector = [Cali_B*cos(geo_inclination), 0, Cali_B*sin(geo_inclination)]';
+            % update from gnss
+            gnss_N = gnss_latitude * RM;
+            gnss_E = gnss_longitude * RN;
+            pdr_N = pdr_latitude * RM;
+            pdr_E = pdr_longitude * RN;
+            if gnss_heading - yaw > pi
+                gnss_heading = gnss_heading - 2*pi;
             end
-
-            [deltaCbn] = euler2dcm (x(3), x(2), x(1)); % (I+P)Cbn
-            Cbn = deltaCbn*Cbn;
-            [yaw, pitch, roll] = dcm2euler(Cbn);   % gyro + acc + mag estimation
-            q = euler2q(yaw, pitch, roll);
-            q = q_norm(q);
+            if gnss_heading - yaw < -pi
+                gnss_headng = gnss_heading + 2*pi;
+            end
+            pdr_z = [gnss_N - pdr_N; gnss_E - pdr_E; gnss_heading - yaw];
+            pdr_h = eye(3, 3);
+            sigma_r = [15, 15, 10/180*pi];
+            pdr_r = diag(sigma_r.^2);
+            pdr_i = eye(3, 3);
+            pdr_k = pdr_p*pdr_h'*((pdr_h*pdr_p*pdr_h'+pdr_r)^-1);
+            pdr_x = pdr_x + pdr_k*(pdr_z - pdr_h*pdr_x)
+            pdr_p = (pdr_i - pdr_k*pdr_h)*pdr_p;
             
-            % feedback
-            acc_bias = acc_bias + x(7:9);
-            gyro_bias = gyro_bias + x(4:6);
-            x(1:StateNum) = 0;
-            end
-            
-            % heading smooth
-            if heading_smooth_count > heading_smooth_number
-                for j = 1 : heading_smooth_number - 1
-                    heading_smooth_array(j) = heading_smooth_array(j+1);
-                end
-                heading_smooth_array(heading_smooth_number) = yaw;
-            else
-                heading_smooth_array(heading_smooth_count) = yaw;
-            end
-            slot_number = min(heading_smooth_count, heading_smooth_number);
-            temp_array = zeros(slot_number, 1);
-            % check discontinuous
-            temp_array(1) = heading_smooth_array(1);
-            for j = 2:slot_number
-                temp_array(j) = heading_smooth_array(j);
-                if temp_array(j) - temp_array(j-1) > 180/180*pi
-                    temp_array(j) = temp_array(j) - 2*pi;
-                end
-                if temp_array(j) - temp_array(j-1) < -180/180*pi
-                    temp_array(j) = temp_array(j) + 2*pi;
-                end
-            end
-            yaw = mean(temp_array(1:slot_number));
-            if yaw > pi
-                yaw = yaw - 2*pi;
-            end
-            if yaw < -pi
-                yaw = yaw + 2*pi;
-            end
-            heading_smooth_count = heading_smooth_count + 1;
-            
-            %% PDR and GNSS fusion
-            if 1
-            gnss_vel_det = norm(gnss_vel);
-            if gnss_vel_det > 1 && step_count > 0
-                pdr_x = zeros(3, 1);
-                pdr_phim = eye(3, 3);
-                sigma_q = [0.2, 0.2, 10/180*pi];
-                pdr_q = diag(sigma_q.^2);
+            pdr_N = pdr_N + pdr_x(1);
+            pdr_latitude = pdr_N / RM;
+            pdr_E = pdr_E + pdr_x(2);
+            pdr_longitude = pdr_E / RN;
+            pdr_x(1:2,:) = 0;
 
-                % predict
-                pdr_x = pdr_phim*pdr_x;
-                pdr_p = pdr_phim*pdr_p*pdr_phim' + pdr_q;
-
-                % update from gnss
-                gnss_N = gnss_latitude * RM;
-                gnss_E = gnss_longitude * RN;
-                pdr_N = pdr_latitude * RM;
-                pdr_E = pdr_longitude * RN;
-                if gnss_heading - yaw > pi
-                    gnss_heading = gnss_heading - 2*pi;
-                end
-                if gnss_heading - yaw < -pi
-                    gnss_headng = gnss_heading + 2*pi;
-                end
-                pdr_z = [gnss_N - pdr_N; gnss_E - pdr_E; gnss_heading - yaw];
-                pdr_h = eye(3, 3);
-                sigma_r = [15, 15, 1/180*pi];
-                pdr_r = diag(sigma_r.^2);
-                pdr_i = eye(3, 3);
-                pdr_k = pdr_p*pdr_h'*((pdr_h*pdr_p*pdr_h'+pdr_r)^-1);
-                pdr_x = pdr_x + pdr_k*(pdr_z - pdr_h*pdr_x);
-                pdr_p = (pdr_i - pdr_k*pdr_h)*pdr_p;
-
-                pdr_N = pdr_N + pdr_x(1);
-                pdr_latitude = pdr_N / RM;
-                pdr_E = pdr_E + pdr_x(2);
-                pdr_longitude = pdr_E / RN;
+            if pdr_x(3) < 5*pi/180;
                 yaw = yaw + pdr_x(3);
                 if yaw > pi
                     yaw = yaw - 2*pi;
@@ -474,56 +232,66 @@ for i = M:length(data)
                 if yaw < -pi
                     yaw = yaw + 2*pi;
                 end
-                
-                [yaw, pitch, roll] = dcm2euler(Cbn);
+                pdr_x(3,1) = 0;
                 q = euler2q(yaw, pitch, roll);
-                q = q_norm(q);
-                pdr_latitude_array(step_count) = pdr_latitude*180/pi;
-                pdr_longitude_array(step_count) = pdr_longitude*180/pi;
-                pdr_altitude_array(step_count) = pdr_altitude;
             end
-            end
-            
-            % restore the heading result
-            sensor_heading_9D(gnss_count) = yaw;
-
-        else
-            if gnss_count ~= 1
-                % lost sensor data
-                sensor_heading_9D(gnss_count) = sensor_heading_9D(gnss_count - 1);
-                sensor_heading_6D(gnss_count) = sensor_heading_6D(gnss_count - 1);
-                mag_inclination(gnss_count) = mag_inclination(gnss_count - 1);
-            end
+            pdr_latitude_array(step_count) = pdr_latitude*180/pi;
+            pdr_longitude_array(step_count) = pdr_longitude*180/pi;
+            pdr_altitude_array(step_count) = pdr_altitude;
         end
-        
-        gnss_count = gnss_count + 1;
-        sensor_count = 0;
+    
     % SENSOR
     elseif type == SENSOR
         sensor_count = sensor_count + 1;
-        % store sensor data into pool
+        heading_gnss(sensor_count) = gnss_heading;
+        
+        %% AHRS
         Mag = data(i, 9:11);
         Acc = data(i, 3:5);
         Gyro = data(i, 6:8);
-        % calibrated mag data
-        Mag = Cali_W_inv*(Mag - Cali_V)';
-        mag_array(sensor_count, :) = Mag;
-        acc_array(sensor_count, :) = Acc;
         % smooth gyro data
-        if gyro_smooth_count > gyro_smooth_number
-            for j = 1 : gyro_smooth_number - 1
+        gyro_smooth_count = gyro_smooth_count + 1;
+        if gyro_smooth_count > gyro_smooth_length
+            for j = 1 : gyro_smooth_length - 1
+                gyro_smooth_count = gyro_smooth_length;
                 gyro_smooth_array(j, :) = gyro_smooth_array(j+1, :);
             end
-            gyro_smooth_array(gyro_smooth_number, :) = Gyro; 
+            gyro_smooth_array(gyro_smooth_length, :) = Gyro; 
         else
             gyro_smooth_array(gyro_smooth_count, :) = Gyro;
         end
-        slot_number = min(gyro_smooth_count, gyro_smooth_number);
+        slot_number = min(gyro_smooth_count, gyro_smooth_length);
         Gyro(1) = mean(gyro_smooth_array(1:slot_number, 1));
         Gyro(2) = mean(gyro_smooth_array(1:slot_number, 2));
         Gyro(3) = mean(gyro_smooth_array(1:slot_number, 3));
-        gyro_smooth_count = gyro_smooth_count + 1;
-        % strapdown mechanization
+        for j = 1:3
+            if abs(Gyro(j)) < 0.08
+               Gyro(j) = 0; 
+            end
+        end
+        
+        %% pure gyro estimate
+        
+        Cbn = q2dcm(q_pure);
+        Cnb = Cbn';
+
+        Wpbb = Gyro';
+
+        dq = zeros(4, 1);
+        dq(1) = -(Wpbb(1)*q_pure(2) + Wpbb(2)*q_pure(3) + Wpbb(3)*q_pure(4))/2;
+        dq(2) = (Wpbb(1)*q_pure(1) + Wpbb(3)*q_pure(3) - Wpbb(2)*q_pure(4))/2;
+        dq(3) = (Wpbb(2)*q_pure(1) - Wpbb(3)*q_pure(2) + Wpbb(1)*q_pure(4))/2;
+        dq(4) = (Wpbb(3)*q_pure(1) + Wpbb(2)*q_pure(2) - Wpbb(1)*q_pure(3))/2;
+        dt = 1/SampleRate;
+        q_pure = q_pure + dq*dt;
+        q_pure = q_norm(q_pure);
+        Cbn = q2dcm(q_pure);
+        [yaw_pure, pitch_pure, roll_pure] = dcm2euler(Cbn); % pure gyro estimation
+        heading_pure(sensor_count) = yaw_pure;
+        
+        %% fusion estimate
+
+        % quaternion integration
         Cbn = q2dcm(q);
         Cnb = Cbn';
 
@@ -542,7 +310,132 @@ for i = M:length(data)
         q = q + dq*dt;
         q = q_norm(q);
         Cbn = q2dcm(q);
-        [yaw, pitch, roll] = dcm2euler(Cbn); % pure gyro estimation
+        
+        %% kalman filter
+        F(1, 4) = -Cbn(1, 1);
+        F(1, 5) = -Cbn(1, 2);
+        F(1, 6) = -Cbn(1, 3);
+        F(2, 4) = -Cbn(2, 1);
+        F(2, 5) = -Cbn(2, 2);
+        F(2, 6) = -Cbn(2, 3);
+        F(3, 4) = -Cbn(3, 1);
+        F(3, 5) = -Cbn(3, 2);
+        F(3, 6) = -Cbn(3, 3);
+        F(4, 4) = -1/Corr_time_gyro;
+        F(5, 5) = -1/Corr_time_gyro;
+        F(6, 6) = -1/Corr_time_gyro;
+        F(7, 7) = -1/Corr_time_acc;
+        F(8, 8) = -1/Corr_time_acc;
+        F(9, 9) = -1/Corr_time_acc;
+
+        qdt(1, 1) = sigma_Win;
+        qdt(2, 2) = sigma_Win;
+        qdt(3, 3) = sigma_Win;
+        qdt(4, 4) = sigma_gyro;
+        qdt(5, 5) = sigma_gyro;
+        qdt(6, 6) = sigma_gyro;
+        qdt(7, 7) = sigma_acc;
+        qdt(8, 8) = sigma_acc;
+        qdt(9, 9) = sigma_acc;
+
+        G(1, 1) = -Cbn(1, 1);
+        G(1, 2) = -Cbn(1, 2);
+        G(1, 3) = -Cbn(1, 3);
+        G(2, 1) = -Cbn(2, 1);
+        G(2, 2) = -Cbn(2, 2);
+        G(2, 3) = -Cbn(2, 3);
+        G(3, 1) = -Cbn(3, 1);
+        G(3, 2) = -Cbn(3, 2);
+        G(3, 3) = -Cbn(3, 3);
+        G(4, 4) = 1;
+        G(5, 5) = 1;
+        G(6, 6) = 1;
+        G(7, 7) = 1;
+        G(8, 8) = 1;
+        G(9, 9) = 1;
+
+        % Q matrix discretization-2 order
+        Q_basic = G*qdt*G';
+        M1 = Q_basic;
+        M2 = Q_basic*F'+F*Q_basic;
+        Q = dt*M1 + 1/2*dt*dt*M2;
+
+        % PHIM matrix discretization-2 order
+        I = eye(9, 9);
+        PHIM = I + dt*F + 1/2*dt*dt*F*F;
+
+        % predict
+        x = PHIM*x;
+        P = PHIM*P*PHIM' + Q;
+
+        % update from acc
+        H = zeros(3, 9);
+        H(1, 2) = G_vector(3);
+        H(2, 1) = -G_vector(3);
+        H(1, 7) = Cbn(1, 1);
+        H(1, 8) = Cbn(1, 2);
+        H(1, 9) = Cbn(1, 3);
+        H(2, 7) = Cbn(2, 1);
+        H(2, 8) = Cbn(2, 2);
+        H(2, 9) = Cbn(2, 3);
+        H(3, 7) = Cbn(3, 1);
+        H(3, 8) = Cbn(3, 2);
+        H(3, 9) = Cbn(3, 3);
+
+        R = eye(3, 3);
+        R(1, 1) = 0.5^2;
+        R(2, 2) = 0.5^2;
+        R(3, 3) = 0.5^2;
+        
+        g_estimate = Cbn*(acc_bias - Acc');
+        Z = G_vector - g_estimate;
+        K = P*H'*((H*P*H'+R)^-1);
+        x = x + K*(Z - H*x);
+        P = (I - K*H)*P;
+
+        [deltaCbn] = euler2dcm (x(3), x(2), x(1)); % (I+P)Cbn
+        Cbn = deltaCbn*Cbn;
+        
+        % check mag condition
+        % calibrated mag data
+        Mag_tr = Cali_W_inv*(Mag - Cali_V)';
+        mag_update = 1;
+        mag_residual(sensor_count, :) = Mag_vector - Cbn*Mag_tr;
+        if abs(mag_residual(sensor_count, 1)) > 5
+            mag_update = 0;
+        end
+        
+        % update from mag
+        if mag_update
+        H = zeros(3, 9);
+        H(1, 2) = Mag_vector(3);
+        H(2, 1) = -Mag_vector(3);
+        H(2, 3) = Mag_vector(1);
+        H(3, 2) = -Mag_vector(1);
+
+        R = eye(3, 3);
+        R(1, 1) = 20^2;
+        R(2, 2) = 20^2;
+        R(3, 3) = 20^2;
+
+        mag_estimate = Cbn*Mag_tr;
+        Z = Mag_vector - mag_estimate;
+
+        K = P*H'*((H*P*H'+R)^-1);
+        x = x + K*(Z - H*x);
+        P = (I - K*H)*P;
+    
+        [deltCbn] = euler2dcm (x(3), x(2), x(1)); % (I+P)Cbn
+        Cbn = deltCbn*Cbn;
+        end
+        acc_bias = acc_bias + x(7:9);
+        gyro_bias = gyro_bias + x(4:6);
+        x(1:9) = 0;
+
+        [yaw, pitch, roll] = dcm2euler(Cbn);
+        q = euler2q(yaw, pitch, roll);
+        q = q_norm(q);
+        heading_fusion(sensor_count) = yaw;
         
         %% step detection
         if step_start_flag ~= 0
@@ -562,14 +455,15 @@ for i = M:length(data)
             else
                 ave_sum = ave_sum + acc_det;
             end
-
-            if acc_data_process_flag
+        end
+        
+        if acc_data_process_flag
                  acc_data_process_flag = 0;
                  % det move average calculate for threshold estimate and the window length is 10 (1s)
                  if move_count < mov_window_length
                      move_count = move_count + 1;
                      acc_det_mean = (acc_det_mean*(move_count-1) + step_det)/move_count;
-                 else 
+                 else
                      acc_det_mean = (acc_det_mean*(mov_window_length-1) + step_det)/mov_window_length;
                  end
 
@@ -578,7 +472,7 @@ for i = M:length(data)
                      threshold = 0.15 * acc_det_mean;
                  else
                      acc_det_mean = Ge;
-                     threshold = 0.05 * acc_det_mean;
+                     threshold = 0.08 * acc_det_mean;
                  end
 
                  % slop calculate
@@ -598,7 +492,6 @@ for i = M:length(data)
                 % step detect (wave summit & delta time & step det)
                 if ( pre_slop > 0 && slop < 0  && delta_step_time >= step_lock_time && pre_step_det - acc_det_mean > threshold)
                     step_count = step_count + 1;
-                    step_adjust_count = step_adjust_count + 1;
                     step_detect_flag = 1;
                     step_timing(step_count) = acc_time_tag_array(acc_array_index-1);
                     delta_step_time = 0;
@@ -610,11 +503,11 @@ for i = M:length(data)
 
                 pre_slop = slop;
                 pre_step_det = step_det;
-            end
-            
-            %% PDR estimate latitude and longitude
-            if step_detect_flag ~= 0
-                step_detect_flag = 0;
+        end
+        
+        %% PDR estimate latitude and longitude
+        if step_detect_flag ~= 0
+            step_detect_flag = 0;
                 step_heading = yaw;
                 % calculate the step trajectory
                 RM = RE * (1 - esqu) / ((1 - esqu * sin(pdr_latitude) * sin(pdr_latitude))^1.5);
@@ -628,46 +521,38 @@ for i = M:length(data)
                 pdr_latitude_array(step_count) = pdr_latitude*180/pi;
                 pdr_longitude_array(step_count) = pdr_longitude*180/pi;
                 pdr_altitude_array(step_count) = pdr_altitude;
-            end
         end
     end
+
 end
-
-%% plot the filter acc det data for debug
-Fs = SampleRate/ave_num;            % About 10Hz
-L = length(acc_det_filtered_array); % Length of signal
-t = acc_time_tag_array;             % Time vector
-y = acc_det_filtered_array;
-
-if 1
-figure;
-start_time = 0*Fs + 1;
-sample_time = 10;                  % Display "sample_time" length data
-plot(t, y);
-% plot(t(start_time:start_time + Fs*sample_time),y(start_time:start_time + Fs*sample_time))
-title('Filtered Acc Det in 10 Second')
-xlabel('Time (seconds)')
-ylabel('Y(t)')
-end
-
-figure;
-plot(gnss_heading_array*180/pi, 'r');
-hold on;
-plot(sensor_heading_9D*180/pi, 'g');
-plot(sensor_heading_6D*180/pi, 'b');
-legend('gnss heading', '9D heaing', '6D heading');
-ylabel('angle(degree)');
-xlabel('time(second)');
-title(['heading comparison, 9D heading std = ', num2str(std(sensor_heading_9D*180/pi)),'deg, ', '6D heading std = ', num2str(std(sensor_heading_6D*180/pi)),'deg']);
-
-figure;
-plot(mag_inclination*180/pi);
-ylabel('angle(degree)');
-xlabel('time(second)');
-title(['geo inclination, std = ', num2str(std(mag_inclination*180/pi)),'deg']);
 
 %% convert pdr trajectory to KML file
 gps2kml('pdrOut',step_timing,pdr_latitude_array,pdr_longitude_array,pdr_altitude_array,'o-b','MarkerSize',10,'LineWidth',3);
+
+figure;
+plot(heading_fusion*180/pi, 'r');
+hold on;
+plot(heading_pure*180/pi, 'b');
+plot(heading_gnss*180/pi, 'g');
+title('heading');
+legend('fusion', 'pure', 'gnss');
+
+figure;
+plot(mag_residual(:, 1), 'r');
+hold on;
+plot(mag_residual(:, 2), 'g');
+plot(mag_residual(:, 3), 'b');
+title('mag residual');
+legend('x', 'y', 'z');
+
+
+
+
+
+
+
+
+
 
 
 
