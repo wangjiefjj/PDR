@@ -20,8 +20,15 @@ extern "C" {
         FLT fPdrHeading;
     } drFusionData_t;
 
+    typedef enum drFusionStatus
+    {
+        NoFix = 0,
+        PosFix = 1<<1,
+        HeadingFix = 1<<2,
+    } drFusionStatus_t;
+
     U32 drKalmanInit(kalmanInfo_t* const pKalmanInfo);
-    U32 drKalmanExec(kalmanInfo_t* const pKalmanInfo, drFusionData_t* const pFusionData);
+    drFusionStatus_t drKalmanExec(kalmanInfo_t* const pKalmanInfo, drFusionData_t* const pFusionData);
 
 
 #ifdef __cplusplus

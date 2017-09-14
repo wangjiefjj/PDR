@@ -16,7 +16,7 @@ static const DBL INIT_RMS[] = {SIG_LAT, SIG_LON, SIG_HEADING};
 
 static void setPhimQd(kalmanInfo_t* const pKalmanInfo);
 static U32 gnssMeasUpdate(kalmanInfo_t* const pKalmanInfo, const drFusionData_t* const pFusionData);
-static void errCorrection(kalmanInfo_t* const pKalmanInfo, drFusionData_t* const pFusionData);
+static drFusionStatus_t errCorrection(kalmanInfo_t* const pKalmanInfo, drFusionData_t* const pFusionData);
 
 /*-------------------------------------------------------------------------*/
 /**
@@ -43,14 +43,16 @@ U32 drKalmanInit(kalmanInfo_t* const pKalmanInfo)
 
  */
 /*--------------------------------------------------------------------------*/
-U32 drKalmanExec(kalmanInfo_t* const pKalmanInfo, drFusionData_t* const pFusionData)
+drFusionStatus_t drKalmanExec(kalmanInfo_t* const pKalmanInfo, drFusionData_t* const pFusionData)
 {
+    drFusionStatus_t retvel;
+
     setPhimQd(pKalmanInfo);
     predict(pKalmanInfo);
     gnssMeasUpdate(pKalmanInfo, pFusionData);
-    errCorrection(pKalmanInfo, pFusionData);
+    retvel = errCorrection(pKalmanInfo, pFusionData);
 
-    return 0;
+    return retvel;
 }
 
 /*-------------------------------------------------------------------------*/
@@ -164,12 +166,15 @@ static U32 gnssMeasUpdate(kalmanInfo_t* const pKalmanInfo, const drFusionData_t*
 
  */
 /*--------------------------------------------------------------------------*/
-static void errCorrection(kalmanInfo_t* const pKalmanInfo, drFusionData_t* const pFusionData)
+static drFusionStatus_t errCorrection(kalmanInfo_t* const pKalmanInfo, drFusionData_t* const pFusionData)
 {
+    drFusionStatus_t retvel = NoFix;
+
     pFusionData->fPdrLatitude = pFusionData->fPdrLatitude + pKalmanInfo->pStateX[0]/RM(pFusionData->fGnssLatitude);
     pFusionData->fPdrLongitude = pFusionData->fPdrLongitude + pKalmanInfo->pStateX[1]/RN(pFusionData->fGnssLatitude);
     pKalmanInfo->pStateX[0] = 0.0F;
     pKalmanInfo->pStateX[1] = 0.0F;
+    retvel |= PosFix;
 
     if (fabs(pKalmanInfo->pStateX[2]) < 10*DEG2RAD)
     {
@@ -184,5 +189,8 @@ static void errCorrection(kalmanInfo_t* const pKalmanInfo, drFusionData_t* const
             pFusionData->fPdrHeading += 2*PI;
         }
         pKalmanInfo->pStateX[2] = 0.0;
+        retvel |= HeadingFix;
     }
+
+    return retvel;
 }

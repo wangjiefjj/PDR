@@ -308,6 +308,8 @@ static void gnssDataProc(const gnssData_t* const pGnssData)
     gnssVel = sqrtf(pGnssData->fVelE * pGnssData->fVelE + pGnssData->fVelN * pGnssData->fVelN + pGnssData->fVelU * pGnssData->fVelU);
     if (gnssVel > 1.5)
     {
+        U32 status = NoFix;
+
         drFusionData.utime = pGnssData->uTime;
         drFusionData.fGnssLatitude = pGnssData->fLatitude;
         drFusionData.fGnssLongitude = pGnssData->fLongitude;
@@ -315,28 +317,38 @@ static void gnssDataProc(const gnssData_t* const pGnssData)
         drFusionData.fPdrLatitude = PdrInfo.fLatitude;
         drFusionData.fPdrLongitude = PdrInfo.fLongitude;
         drFusionData.fPdrHeading = AhrsFixData.fPsiPl;
-        drKalmanExec(&DrKalmanInfo, &drFusionData);
 
-        // update pdr information
-        PdrInfo.uTime = drFusionData.utime;
-        PdrInfo.fLatitude = drFusionData.fPdrLatitude;
-        PdrInfo.fLongitude = drFusionData.fPdrLongitude;
+        status = drKalmanExec(&DrKalmanInfo, &drFusionData);
 
-        // update ahrs information
-        AhrsFixData.fPsiPl = drFusionData.fPdrHeading;
-        euler2dcm(AhrsFixData.fCbn, AhrsFixData.fPsiPl, AhrsFixData.fThePl, AhrsFixData.fPhiPl);
-        euler2q(fq, AhrsFixData.fPsiPl, AhrsFixData.fThePl, AhrsFixData.fPhiPl);
-        memcpy(AhrsFixData.fCnb, AhrsFixData.fCbn, sizeof(AhrsFixData.fCnb));
-        f3x3matrixTranspose(AhrsFixData.fCnb);
-        AhrsFixData.fqPl.q0 = fq[0];
-        AhrsFixData.fqPl.q1 = fq[1];
-        AhrsFixData.fqPl.q2 = fq[2];
-        AhrsFixData.fqPl.q3 = fq[3];
-
+        if ((status & PosFix) != 0)
+        {
+            // update pdr information
+            PdrInfo.uTime = drFusionData.utime;
+            PdrInfo.fLatitude = drFusionData.fPdrLatitude;
+            PdrInfo.fLongitude = drFusionData.fPdrLongitude;
 #ifdef DEBUG
-        printf("gnss aiding occur in %dms.\r\n", drFusionData.utime);
-        fprintf(FpOutput, "%d, %.8f, %.8f, %.8f\n", PdrInfo.uTime, PdrInfo.fLatitude*RAD2DEG, PdrInfo.fLongitude*RAD2DEG, PdrInfo.fAltitude);
+            printf("gnss position aiding occur in %dms.\r\n", drFusionData.utime);
+            fprintf(FpOutput, "%d, %.8f, %.8f, %.8f\n", PdrInfo.uTime, PdrInfo.fLatitude*RAD2DEG, PdrInfo.fLongitude*RAD2DEG, PdrInfo.fAltitude);
 #endif
+        }
+
+        if ((status & HeadingFix) != 0)
+        {
+            // update ahrs information
+            AhrsFixData.uTime = drFusionData.utime;
+            AhrsFixData.fPsiPl = drFusionData.fPdrHeading;
+            euler2dcm(AhrsFixData.fCbn, AhrsFixData.fPsiPl, AhrsFixData.fThePl, AhrsFixData.fPhiPl);
+            euler2q(fq, AhrsFixData.fPsiPl, AhrsFixData.fThePl, AhrsFixData.fPhiPl);
+            memcpy(AhrsFixData.fCnb, AhrsFixData.fCbn, sizeof(AhrsFixData.fCnb));
+            f3x3matrixTranspose(AhrsFixData.fCnb);
+            AhrsFixData.fqPl.q0 = fq[0];
+            AhrsFixData.fqPl.q1 = fq[1];
+            AhrsFixData.fqPl.q2 = fq[2];
+            AhrsFixData.fqPl.q3 = fq[3];
+#ifdef DEBUG
+            printf("gnss heading aiding occur in %dms.\r\n", drFusionData.utime);
+#endif
+        }
     }
 }
 
