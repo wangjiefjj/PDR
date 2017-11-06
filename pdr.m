@@ -110,6 +110,10 @@ RE = 6378137.0;
 esqu = 0.00669437999013;
 G_vector = [0, 0, Ge]';
 sensor_count = 0;
+static_count = 0;
+initial_latitude = 0;
+initial_longitude = 0;
+initial_altitude = 0;
 
 %% ahrs variable
 gyro_bias = zeros(3, 1);
@@ -163,12 +167,18 @@ step_lock_time = 0.3;
 step_count = 0;
 step_detect_flag = 0;
 step_length = 0.8;
+step_freq = 0;
 step_start_flag = 0;
 
 %% pdr gnss fusion variable
-sigma_p = [0.1, 0.1, 10];
-pdr_p = diag(sigma_p);
-pdr_x = zeros(3, 1);
+Corr_time_step_length = 100;
+sigma_n = 0.1;
+sigma_e = 0.1;
+sigma_step_length = 0.1;
+sigma_step_heading = 5/180*pi;
+sigma_p = [0.1, 0.1, 0.1, 5/180*pi];
+pdr_p = diag(sigma_p.^2);
+pdr_x = zeros(4, 1);
 
 %% main loop
 for i = M:length(data)
@@ -182,17 +192,50 @@ for i = M:length(data)
         gnss_vel = data(i, 6:8);
         gnss_heading = data(i, 9);
         if step_start_flag ~= 1
-            step_start_flag = 1;
-            pdr_latitude = gnss_latitude;
-            pdr_longitude = gnss_longitude;
-            pdr_altitude = gnss_altitude;
+            static_count = static_count + 1;
+            initial_latitude = initial_latitude + gnss_latitude;
+            initial_longitude = initial_longitude + gnss_longitude;
+            initial_altitude = initial_altitude + gnss_altitude;
+            
+            if static_count == 10
+                step_start_flag = 1;
+                pdr_latitude = initial_latitude / 10;
+                pdr_longitude = initial_longitude / 10;
+                pdr_altitude = initial_altitude / 10;
+            else
+                continue;
+            end
         end
         
         gnss_vel_det = norm(gnss_vel);
         if gnss_vel_det > 1.5
-            pdr_phim = eye(3, 3);
-            sigma_q = [0.1, 0.1, 5/180*pi];
-            pdr_q = diag(sigma_q.^2);
+            dt = 1;
+            
+            pdr_f = zeros(4, 4);
+            pdr_f(1, 3) = step_freq*cos(yaw);
+            pdr_f(1, 4) = -step_length*step_freq*sin(yaw);
+            pdr_f(2, 3) = step_freq*sin(yaw);
+            pdr_f(2, 4) = step_length*step_freq*cos(yaw);
+            pdr_f(3, 3) = -1/Corr_time_step_length;
+            pdr_f(4, 4) = 0;
+            
+            pdr_qdt = zeros(4, 4);
+            pdr_qdt(1, 1) = sigma_n^2;
+            pdr_qdt(2, 2) = sigma_e^2;
+            pdr_qdt(3, 3) = sigma_step_length^2;
+            pdr_qdt(4, 4) = sigma_step_heading^2;
+            
+            pdr_g = eye(4, 4);
+            
+            % Q matrix discretization-2 order
+            Q_basic = pdr_g*pdr_qdt*pdr_g';
+            M1 = Q_basic;
+            M2 = Q_basic*pdr_f'+pdr_f*Q_basic;
+            pdr_q = dt*M1 + 1/2*dt*dt*M2;
+
+            % PHIM matrix discretization-2 order
+            I = eye(4, 4);
+            pdr_phim = I + dt*pdr_f + 1/2*dt*dt*pdr_f*pdr_f;        
 
             % predict
             pdr_x = pdr_phim*pdr_x;
@@ -210,31 +253,44 @@ for i = M:length(data)
                 gnss_headng = gnss_heading + 2*pi;
             end
             pdr_z = [gnss_N - pdr_N; gnss_E - pdr_E; gnss_heading - yaw];
-            pdr_h = eye(3, 3);
+            pdr_h = zeros(3, 4);
+            pdr_h(1, 1) = 1;
+            pdr_h(2, 2) = 1;
+            pdr_h(3, 4) = 1;
             sigma_r = [20, 20, 10/180*pi];
             pdr_r = diag(sigma_r.^2);
-            pdr_i = eye(3, 3);
+            pdr_i = eye(4, 4);
             pdr_k = pdr_p*pdr_h'*((pdr_h*pdr_p*pdr_h'+pdr_r)^-1);
             pdr_x = pdr_x + pdr_k*(pdr_z - pdr_h*pdr_x);
             pdr_p = (pdr_i - pdr_k*pdr_h)*pdr_p;
             
-            pdr_N = pdr_N + pdr_x(1);
-            pdr_latitude = pdr_N / RM;
-            pdr_E = pdr_E + pdr_x(2);
-            pdr_longitude = pdr_E / RN;
-            pdr_x(1:2,:) = 0;
+            if pdr_x(1) < 0.5
+                pdr_N = pdr_N + pdr_x(1);
+                pdr_latitude = pdr_N / RM;
+            end
+            pdr_x(1) = 0;
+            
+            if pdr_x(2) < 0.5
+                pdr_E = pdr_E + pdr_x(2);
+                pdr_longitude = pdr_E / RN;
+            end
+            pdr_x(2) = 0;
 
-            if abs(pdr_x(3)) < 10*pi/180
-                yaw = yaw + pdr_x(3);
+            if abs(pdr_x(4)) < 10*pi/180
+                yaw = yaw + pdr_x(4);
                 if yaw > pi
                     yaw = yaw - 2*pi;
                 end
                 if yaw < -pi
                     yaw = yaw + 2*pi;
                 end
-                pdr_x(3,1) = 0;
+                pdr_x(4) = 0;
                 q = euler2q(yaw, pitch, roll);
             end
+            
+            step_length = step_length + pdr_x(3);
+            pdr_x(3) = 0;
+            
             pdr_latitude_array(step_count) = pdr_latitude*180/pi;
             pdr_longitude_array(step_count) = pdr_longitude*180/pi;
             pdr_altitude_array(step_count) = pdr_altitude;
@@ -494,6 +550,7 @@ for i = M:length(data)
                     step_count = step_count + 1;
                     step_detect_flag = 1;
                     step_timing(step_count) = acc_time_tag_array(acc_array_index-1);
+                    step_freq = 1 / delta_step_time;
                     delta_step_time = 0;
                 else
                     if delta_step_time > 3 % 3s has no step for a long time, need to reset. 
@@ -544,23 +601,3 @@ plot(mag_residual(:, 2), 'g');
 plot(mag_residual(:, 3), 'b');
 title('mag residual');
 legend('x', 'y', 'z');
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
