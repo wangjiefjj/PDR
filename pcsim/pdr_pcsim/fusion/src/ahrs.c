@@ -3,8 +3,6 @@
 #include <memory.h>
 #include "ahrs.h"
 
-#define     ALIGN_NUM               (100)
-
 #define     STATE_NUM               (9)
 #define     UD_NUM                  (STATE_NUM*(STATE_NUM+1)/2)
 #define     MEAS_ACC_NUM            (3)
@@ -83,7 +81,7 @@ void gyroCorrection(FLT gyro[], const ahrsFixData_t* const pAhrsFixData)
 {
     U32 i = 0;
 
-    for (i = X; i <= Z; i++)
+    for (i = CHX; i <= CHZ; i++)
     {
         gyro[i] -= pAhrsFixData->fGyroBias[i];
     }
@@ -102,7 +100,7 @@ void accCorrection(FLT acc[], const ahrsFixData_t* const pAhrsFixData)
 {
     U32 i = 0;
 
-    for (i = X; i <= Z; i++)
+    for (i = CHX; i <= CHZ; i++)
     {
         acc[i] -= pAhrsFixData->fAccBias[i];
     }
@@ -133,35 +131,35 @@ U32 compassAlignment(const FLT acc[], const FLT mag[], ahrsFixData_t* const pAhr
     U32 i, j, retval;
 
     retval = 0;
-    for (i = X; i <= Z; i++)
+    for (i = CHX; i <= CHZ; i++)
     {
         fg[i] = -acc[i];
         fmag[i] = mag[i];
-        fR[i][Z] = fg[i];
-        fR[i][X] = fmag[i];
+        fR[i][CHZ] = fg[i];
+        fR[i][CHX] = fmag[i];
     }
 
     // set y vector to vector product of z and x vectors
-    fR[X][Y] = fR[Y][Z] * fR[Z][X] - fR[Z][Z] * fR[Y][X];
-    fR[Y][Y] = fR[Z][Z] * fR[X][X] - fR[X][Z] * fR[Z][X];
-    fR[Z][Y] = fR[X][Z] * fR[Y][X] - fR[Y][Z] * fR[X][X];
+    fR[CHX][CHY] = fR[CHY][CHZ] * fR[CHZ][CHX] - fR[CHZ][CHZ] * fR[CHY][CHX];
+    fR[CHY][CHY] = fR[CHZ][CHZ] * fR[CHX][CHX] - fR[CHX][CHZ] * fR[CHZ][CHX];
+    fR[CHZ][CHY] = fR[CHX][CHZ] * fR[CHY][CHX] - fR[CHY][CHZ] * fR[CHX][CHX];
 
     // set x vector to vector product of y and z vectors
-    fR[X][X] = fR[Y][Y] * fR[Z][Z] - fR[Z][Y] * fR[Y][Z];
-    fR[Y][X] = fR[Z][Y] * fR[X][Z] - fR[X][Y] * fR[Z][Z];
-    fR[Z][X] = fR[X][Y] * fR[Y][Z] - fR[Y][Y] * fR[X][Z];
+    fR[CHX][CHX] = fR[CHY][CHY] * fR[CHZ][CHZ] - fR[CHZ][CHY] * fR[CHY][CHZ];
+    fR[CHY][CHX] = fR[CHZ][CHY] * fR[CHX][CHZ] - fR[CHX][CHY] * fR[CHZ][CHZ];
+    fR[CHZ][CHX] = fR[CHX][CHY] * fR[CHY][CHZ] - fR[CHY][CHY] * fR[CHX][CHZ];
 
-    for (i = X; i <= Z; i++)
+    for (i = CHX; i <= CHZ; i++)
     {
-        fmod[i] = sqrtf(fR[X][i] * fR[X][i] + fR[Y][i] * fR[Y][i] + fR[Z][i] * fR[Z][i]);
+        fmod[i] = sqrtf(fR[CHX][i] * fR[CHX][i] + fR[CHY][i] * fR[CHY][i] + fR[CHZ][i] * fR[CHZ][i]);
     }
 
-    if (!((fmod[X] < 1e-5) || (fmod[Y] < 1e-5) || (fmod[Z] < 1e-5)))
+    if (!((fmod[CHX] < 1e-5) || (fmod[CHY] < 1e-5) || (fmod[CHZ] < 1e-5)))
     {
-        for (j = X; j <= Z; j++)
+        for (j = CHX; j <= CHZ; j++)
         {
             ftmp = 1.0F / fmod[j];
-            for (i = X; i <= Z; i++)
+            for (i = CHX; i <= CHZ; i++)
             {
                 fR[i][j] *= ftmp;
             }
@@ -176,11 +174,11 @@ U32 compassAlignment(const FLT acc[], const FLT mag[], ahrsFixData_t* const pAhr
     memcpy(pAhrsFixData->fCbn, fR, sizeof(pAhrsFixData->fCbn));
     f3x3matrixTranspose(pAhrsFixData->fCbn);
 
-    fmodMag = sqrtf(fmag[X] * fmag[X] + fmag[Y] * fmag[Y] + fmag[Z] * fmag[Z]);
-    fGdotMag = fg[X] * fmag[X] + fg[Y] * fmag[Y] + fg[Z] * fmag[Z];
-    if (!((fmod[Z] == 0.0F) || (fmodMag == 0.0F)))
+    fmodMag = sqrtf(fmag[CHX] * fmag[CHX] + fmag[CHY] * fmag[CHY] + fmag[CHZ] * fmag[CHZ]);
+    fGdotMag = fg[CHX] * fmag[CHX] + fg[CHY] * fmag[CHY] + fg[CHZ] * fmag[CHZ];
+    if (!((fmod[CHZ] == 0.0F) || (fmodMag == 0.0F)))
     {
-        pAhrsFixData->fDelta = asinf(fGdotMag / (fmod[Z] * fmodMag));
+        pAhrsFixData->fDelta = asinf(fGdotMag / (fmod[CHZ] * fmodMag));
     }
     dcm2euler(pAhrsFixData->fCbn, &fyaw, &fpitch, &froll);
     pAhrsFixData->fPsiPl = fyaw;
@@ -210,15 +208,15 @@ U32 horizonAlignment(const FLT acc[], ahrsFixData_t* const pAhrsFixData)
     FLT fmodG = 0.0F;
     FLT fq[4] = {0.0F};
 
-    fmodG = sqrtf(acc[X] * acc[X] + acc[Y] * acc[Y] + acc[Z] * acc[Z]);
+    fmodG = sqrtf(acc[CHX] * acc[CHX] + acc[CHY] * acc[CHY] + acc[CHZ] * acc[CHZ]);
     if (fmodG < 1e-5)
     {
         // no solution is possible
         return -1;
     }
     pAhrsFixData->fPsiPl = 0.0F;
-    pAhrsFixData->fThePl = -asinf(acc[X]/(-fmodG));
-    pAhrsFixData->fPhiPl = atan2f(acc[Y]/(-fmodG), acc[Z]/(-fmodG));
+    pAhrsFixData->fThePl = -asinf(acc[CHX]/(-fmodG));
+    pAhrsFixData->fPhiPl = atan2f(acc[CHY]/(-fmodG), acc[CHZ]/(-fmodG));
 
     euler2q(fq, pAhrsFixData->fPsiPl, pAhrsFixData->fThePl, pAhrsFixData->fPhiPl);
     pAhrsFixData->fqPl.q0 = fq[0];
@@ -248,13 +246,13 @@ U32 headingAlignment(const FLT mag[], ahrsFixData_t* const pAhrsFixData)
     FLT mVector[CHN] = {0.0F};
     FLT fq[4] = {0.0F};
 
-    mHorizon[X] = cosf(pAhrsFixData->fThePl) * mag[X] + sinf(pAhrsFixData->fPhiPl) * sinf(pAhrsFixData->fThePl) * mag[Y]
-                + cosf(pAhrsFixData->fPhiPl) * sinf(pAhrsFixData->fThePl) * mag[Z];
-    mHorizon[Y] = cosf(pAhrsFixData->fPhiPl) * mag[Y] - sinf(pAhrsFixData->fPhiPl) * mag[Z];
-    mHorizon[Z] = -sinf(pAhrsFixData->fThePl) * mag[X] + sinf(pAhrsFixData->fPhiPl) * cosf(pAhrsFixData->fThePl) * mag[Y]
-                + cosf(pAhrsFixData->fPhiPl) * cosf(pAhrsFixData->fThePl) * mag[Z];
+    mHorizon[CHX] = cosf(pAhrsFixData->fThePl) * mag[CHX] + sinf(pAhrsFixData->fPhiPl) * sinf(pAhrsFixData->fThePl) * mag[CHY]
+                + cosf(pAhrsFixData->fPhiPl) * sinf(pAhrsFixData->fThePl) * mag[CHZ];
+    mHorizon[CHY] = cosf(pAhrsFixData->fPhiPl) * mag[CHY] - sinf(pAhrsFixData->fPhiPl) * mag[CHZ];
+    mHorizon[CHZ] = -sinf(pAhrsFixData->fThePl) * mag[CHX] + sinf(pAhrsFixData->fPhiPl) * cosf(pAhrsFixData->fThePl) * mag[CHY]
+                + cosf(pAhrsFixData->fPhiPl) * cosf(pAhrsFixData->fThePl) * mag[CHZ];
 
-    pAhrsFixData->fPsiPl = atan2f(-mHorizon[Y], mHorizon[X]);
+    pAhrsFixData->fPsiPl = atan2f(-mHorizon[CHY], mHorizon[CHX]);
 
     euler2q(fq, pAhrsFixData->fPsiPl, pAhrsFixData->fThePl, pAhrsFixData->fPhiPl);
     pAhrsFixData->fqPl.q0 = fq[0];
@@ -267,10 +265,10 @@ U32 headingAlignment(const FLT mag[], ahrsFixData_t* const pAhrsFixData)
     f3x3matrixTranspose(pAhrsFixData->fCnb);
 
     // estimate the dip angle
-    mVector[X] = cosf(pAhrsFixData->fPsiPl) * mHorizon[X] - sinf(pAhrsFixData->fPsiPl) * mHorizon[Y];
-    //mVector[Y] = sinf(pAhrsFixData->fPsiPl) * mHorizon[X] + cosf(pAhrsFixData->fPsiPl) * mHorizon[Y];
-    mVector[Z] = mHorizon[Z];
-    pAhrsFixData->fDelta = atanf(mVector[Z]/mVector[X]);
+    mVector[CHX] = cosf(pAhrsFixData->fPsiPl) * mHorizon[CHX] - sinf(pAhrsFixData->fPsiPl) * mHorizon[CHY];
+    //mVector[CHY] = sinf(pAhrsFixData->fPsiPl) * mHorizon[CHX] + cosf(pAhrsFixData->fPsiPl) * mHorizon[CHY];
+    mVector[CHZ] = mHorizon[CHZ];
+    pAhrsFixData->fDelta = atanf(mVector[CHZ]/mVector[CHX]);
     
     return 0;
 }
@@ -332,7 +330,13 @@ U32 quaternionIntegration (U32 utime, const FLT gyro[], ahrsFixData_t* const pAh
 /*--------------------------------------------------------------------------*/
 U32 ahrsKalmanInit(kalmanInfo_t* const pKalmanInfo)
 {
-    kalmanInit(pKalmanInfo, STATE_NUM, INIT_RMS);
+    U8 i;
+
+    kalmanInit(pKalmanInfo, STATE_NUM);
+    for (i = 0; i < STATE_NUM; i++)
+    {
+        pKalmanInfo->D_plus[i+1] = INIT_RMS[i] * INIT_RMS[i];
+    }
 
     return 0;
 }
@@ -349,7 +353,7 @@ U32 ahrsKalmanInit(kalmanInfo_t* const pKalmanInfo)
 U32 ahrsKalmanExec(U32 utime, const FLT acc[], const FLT mag[], kalmanInfo_t* const pKalmanInfo, ahrsFixData_t* const pAhrsFixData)
 {
     setPhimQd(utime, pKalmanInfo, pAhrsFixData);
-    predict(pKalmanInfo);
+    udKfPredict(pKalmanInfo);
     accMeasUpdate(acc, pKalmanInfo, pAhrsFixData);
     if (mag != NULL)
     {
@@ -373,9 +377,9 @@ static void setPhimQd(U32 utime, kalmanInfo_t* const pKalmanInfo, ahrsFixData_t*
 {
     U32 i = 0;
     U32 j = 0;
-    U32 stateNum = pKalmanInfo->uStateNum;
-    DBL **phim = pKalmanInfo->pPhim;
-    DBL **qdt = pKalmanInfo->pQd;
+    U32 stateNum = STATE_NUM;
+    DBL phim[STATE_NUM][STATE_NUM] = {0};
+    DBL qdt[STATE_NUM][STATE_NUM] = {0};
     FLT (*fCbn)[3] = pAhrsFixData->fCbn;
     DBL G[STATE_NUM][STATE_NUM] = {0};         // the row and col of shaping matrix are related with model rather than fixed.
     DBL GT[STATE_NUM][STATE_NUM] = {0};        // the transpose of G matrix
@@ -383,6 +387,7 @@ static void setPhimQd(U32 utime, kalmanInfo_t* const pKalmanInfo, ahrsFixData_t*
     DBL temp[STATE_NUM][STATE_NUM] = {0};
     DBL *pRowA[STATE_NUM] = {0};
     DBL *pRowB[STATE_NUM] = {0};
+    DBL *pRowC[STATE_NUM] = {0};
     FLT fdt = 0.0F;
 
     for (i = 0; i <stateNum; i++)
@@ -459,25 +464,25 @@ static void setPhimQd(U32 utime, kalmanInfo_t* const pKalmanInfo, ahrsFixData_t*
     for (i = 0; i < stateNum; i++)
     {
         pRowA[i] = G[i];
+        pRowB[i] = qdt[i];
+        pRowC[i] = temp[i];
     }
-    for (i = 0; i < stateNum; i++)
-    {
-        pRowB[i] = temp[i];
-    }
-    matrixMult(pRowA, qdt, stateNum, stateNum, stateNum, stateNum, pRowB);
+    matrixMult(pRowA, pRowB, stateNum, stateNum, stateNum, stateNum, pRowC);
     for (i = 0; i < stateNum; i++)
     {
         pRowA[i] = GT[i];
     }
-    matrixMult(pRowB, pRowA, stateNum, stateNum, stateNum, stateNum, qdt);
+    matrixMult(pRowC, pRowA, stateNum, stateNum, stateNum, stateNum, pRowB);
 
     // Q matrix discretization-2 order
     // M2=phi¡ÁM1£¬M1£½Q
     for (i = 0; i < stateNum; i++)
     {
-        pRowA[i] = M2[i];
+        pRowA[i] = phim[i];
+        pRowB[i] = qdt[i];
+        pRowC[i] = M2[i];
     }
-    matrixMult(phim, qdt, stateNum, stateNum, stateNum, stateNum, pRowA);
+    matrixMult(pRowA, pRowB, stateNum, stateNum, stateNum, stateNum, pRowC);
 
     fdt = dtCalculate(utime, pAhrsFixData->uTime);
     for (i = 0; i < stateNum; i++)
@@ -488,16 +493,22 @@ static void setPhimQd(U32 utime, kalmanInfo_t* const pKalmanInfo, ahrsFixData_t*
             qdt[i][j] = qdt[i][j] * fdt + (M2[i][j] + M2[j][i]) * fdt * fdt / 2.0;
         }
     }
-    
-    // ud decompose for Q matrix
-    udDecompose(qdt, stateNum);
+
+    for (i = 0; i < stateNum; i++)
+    {
+        for (j = 0; j < stateNum; j++)
+        {
+            pKalmanInfo->Q[i][j] = qdt[i][j];
+        }
+    }
 
     // phi matrix discretization-2 order
     for (i = 0; i < stateNum; i++)
     {
-        pRowA[i] = temp[i];
+        pRowA[i] = phim[i];
+        pRowB[i] = temp[i];
     }
-    matrixMult(phim, phim, stateNum, stateNum, stateNum, stateNum, pRowA);
+    matrixMult(pRowA, pRowA, stateNum, stateNum, stateNum, stateNum, pRowB);
 
     for (i = 0; i < stateNum; i++)
     {
@@ -508,6 +519,20 @@ static void setPhimQd(U32 utime, kalmanInfo_t* const pKalmanInfo, ahrsFixData_t*
             if (j == i)
             {
                 phim[i][j] += 1.0;
+            }
+        }
+    }
+
+    pKalmanInfo->msCnt = utime;
+    pKalmanInfo->periodTms = (U16)(fdt*1000 + 0.5);
+
+    for (i = 0; i < stateNum; i++)
+    {
+        for (j = 0; j < stateNum; j++)
+        {
+            if (j >= i)
+            {
+                pKalmanInfo->A[uMatIdx(i + 1, j + 1, stateNum)] = phim[i][j];
             }
         }
     }
@@ -532,12 +557,9 @@ static U32 accMeasUpdate(const FLT acc[], kalmanInfo_t* const pKalmanInfo, ahrsF
     DBL z[MEAS_ACC_NUM] = {0.0};
     DBL h[MEAS_ACC_NUM][STATE_NUM] = {0.0};
     DBL r[MEAS_ACC_NUM] = {0.0};
-    DBL xSave[STATE_NUM];
-    DBL udSave[UD_NUM];
-    DBL ion = 0.0;
-    DBL res = 0.0;
     DBL gEstimate[3] = {0.0};
     DBL test = 0.0;
+    DBL deltaX[STATE_NUM] = {0.0};
 
     h[0][1] = GRAVITY;
     h[1][0] = -GRAVITY;
@@ -555,14 +577,14 @@ static U32 accMeasUpdate(const FLT acc[], kalmanInfo_t* const pKalmanInfo, ahrsF
     r[1] = 5 * 5;
     r[2] = 5 * 5;
 
-    for (i = X; i <= Z; i++)
+    for (i = CHX; i <= CHZ; i++)
     {
-        gEstimate[i] = -(pAhrsFixData->fCbn[i][X] * acc[X] + pAhrsFixData->fCbn[i][Y] * acc[Y] + pAhrsFixData->fCbn[i][Z] * acc[Z]);
+        gEstimate[i] = -(pAhrsFixData->fCbn[i][CHX] * acc[CHX] + pAhrsFixData->fCbn[i][CHY] * acc[CHY] + pAhrsFixData->fCbn[i][CHZ] * acc[CHZ]);
     }
 
-    z[X] = 0 - gEstimate[X];
-    z[Y] = 0 - gEstimate[Y];
-    z[Z] = GRAVITY - gEstimate[Z];
+    z[CHX] = 0 - gEstimate[CHX];
+    z[CHY] = 0 - gEstimate[CHY];
+    z[CHZ] = GRAVITY - gEstimate[CHZ];
 
     for (i = 0; i < MEAS_ACC_NUM; i++)
     {
@@ -574,21 +596,12 @@ static U32 accMeasUpdate(const FLT acc[], kalmanInfo_t* const pKalmanInfo, ahrsF
             hc[j] = h[i][j];
         }
 
-        // save x,p in case the measurement is rejected
-        memcpy(xSave, pKalmanInfo->pStateX, sizeof(xSave));
-        memcpy(udSave, pKalmanInfo->pUd, sizeof(udSave));
+        test = udKFUpdate(pKalmanInfo, hc, deltaX, rc, zc, 5, UPDATE_SAVE);
+    }
 
-        // scalar measurement update
-        udMeasUpdate(pKalmanInfo->pUd, pKalmanInfo->pStateX, pKalmanInfo->uStateNum, rc, hc, zc, &ion, &res);
-        test = fabs(res) / sqrt(ion);
-
-        // reject this measurement
-        // 1. innovation test > 5, generally it is around 3.24
-        if (test > 5)
-        {
-            memcpy(pKalmanInfo->pStateX, xSave, sizeof(xSave));
-            memcpy(pKalmanInfo->pUd, udSave, sizeof(udSave));
-        }
+    for (i = 0; i < STATE_NUM; i++)
+    {
+        pKalmanInfo->X[i] += deltaX[i];
     }
 
     return 0;
@@ -613,13 +626,10 @@ static U32 magMeasUpdate(const FLT mag[], kalmanInfo_t* const pKalmanInfo, ahrsF
     DBL z[MEAS_MAG_NUM] = {0.0};
     DBL h[MEAS_MAG_NUM][STATE_NUM] = {0.0};
     DBL r[MEAS_MAG_NUM] = {0.0};
-    DBL xSave[STATE_NUM];
-    DBL udSave[UD_NUM];
-    DBL ion = 0.0;
-    DBL res = 0.0;
     DBL magEstimate[3] = {0.0};
     DBL magVector[3] = {0.0};
     DBL test = 0.0;
+    DBL deltaX[STATE_NUM] = {0};
 
     magVector[0] = pAhrsFixData->fB * cosf(pAhrsFixData->fDelta);
     magVector[2] = pAhrsFixData->fB * sinf(pAhrsFixData->fDelta);
@@ -632,14 +642,14 @@ static U32 magMeasUpdate(const FLT mag[], kalmanInfo_t* const pKalmanInfo, ahrsF
     r[1] = 20 * 20;
     r[2] = 20 * 20;
 
-    for (i = X; i <= Z; i++)
+    for (i = CHX; i <= CHZ; i++)
     {
-        magEstimate[i] = pAhrsFixData->fCbn[i][X] * mag[X] + pAhrsFixData->fCbn[i][Y] * mag[Y] + pAhrsFixData->fCbn[i][Z] * mag[Z];
+        magEstimate[i] = pAhrsFixData->fCbn[i][CHX] * mag[CHX] + pAhrsFixData->fCbn[i][CHY] * mag[CHY] + pAhrsFixData->fCbn[i][CHZ] * mag[CHZ];
     }
 
-    z[X] = magVector[X] - magEstimate[X];
-    z[Y] = magVector[Y] - magEstimate[Y];
-    z[Z] = magVector[Z] - magEstimate[Z];
+    z[CHX] = magVector[CHX] - magEstimate[CHX];
+    z[CHY] = magVector[CHY] - magEstimate[CHY];
+    z[CHZ] = magVector[CHZ] - magEstimate[CHZ];
 
     for (i = 0; i < MEAS_MAG_NUM; i++)
     {
@@ -651,21 +661,12 @@ static U32 magMeasUpdate(const FLT mag[], kalmanInfo_t* const pKalmanInfo, ahrsF
             hc[j] = h[i][j];
         }
 
-        // save x,p in case the measurement is rejected
-        memcpy(xSave, pKalmanInfo->pStateX, sizeof(xSave));
-        memcpy(udSave, pKalmanInfo->pUd, sizeof(udSave));
+        test = udKFUpdate(pKalmanInfo, hc, deltaX, rc, zc, 5, UPDATE_SAVE);
+    }
 
-        // scalar measurement update
-        udMeasUpdate(pKalmanInfo->pUd, pKalmanInfo->pStateX, pKalmanInfo->uStateNum, rc, hc, zc, &ion, &res);
-        test = fabs(res) / sqrt(ion);
-
-        // reject this measurement
-        // 1. innovation test > 5, generally it is around 3.24
-        if (test > 5)
-        {
-            memcpy(pKalmanInfo->pStateX, xSave, sizeof(xSave));
-            memcpy(pKalmanInfo->pUd, udSave, sizeof(udSave));
-        }
+    for (i = 0; i < STATE_NUM; i++)
+    {
+        pKalmanInfo->X[i] += deltaX[i];
     }
 
     return 0;
@@ -690,13 +691,13 @@ static void errCorrection(kalmanInfo_t* const pKalmanInfo, ahrsFixData_t* const 
     FLT temp = 0.0;
     FLT tempMatrix[3][3] = {0.0};
 
-    euler2dcm(deltaCbn, (FLT)pKalmanInfo->pStateX[2], (FLT)pKalmanInfo->pStateX[1], (FLT)pKalmanInfo->pStateX[0]);
-    for (i = X; i <= Z; i++)
+    euler2dcm(deltaCbn, (FLT)pKalmanInfo->X[2], (FLT)pKalmanInfo->X[1], (FLT)pKalmanInfo->X[0]);
+    for (i = CHX; i <= CHZ; i++)
     {
-        for (j = X; j <= Z; j++)
+        for (j = CHX; j <= CHZ; j++)
         {
             temp = 0.0F;
-            for (k = X; k <= Z; k++)
+            for (k = CHX; k <= CHZ; k++)
             {
                 temp += deltaCbn[i][k] * pAhrsFixData->fCbn[k][j];
             }
@@ -707,10 +708,10 @@ static void errCorrection(kalmanInfo_t* const pKalmanInfo, ahrsFixData_t* const 
     memcpy(pAhrsFixData->fCnb, tempMatrix, sizeof(pAhrsFixData->fCnb));
     f3x3matrixTranspose(pAhrsFixData->fCnb);
 
-    for (i = X; i <= Z; i++)
+    for (i = CHX; i <= CHZ; i++)
     {
-        pAhrsFixData->fGyroBias[i] += (FLT)pKalmanInfo->pStateX[i + 3];
-        pAhrsFixData->fAccBias[i] += (FLT)pKalmanInfo->pStateX[i + 6];
+        pAhrsFixData->fGyroBias[i] += (FLT)pKalmanInfo->X[i + 3];
+        pAhrsFixData->fAccBias[i] += (FLT)pKalmanInfo->X[i + 6];
     }
 
     dcm2euler(pAhrsFixData->fCbn, &pAhrsFixData->fPsiPl, &pAhrsFixData->fThePl, &pAhrsFixData->fPhiPl);
@@ -724,6 +725,6 @@ static void errCorrection(kalmanInfo_t* const pKalmanInfo, ahrsFixData_t* const 
     // clear x
     for (i = 0; i < STATE_NUM; i++)
     {
-        pKalmanInfo->pStateX[i] = 0.0;
+        pKalmanInfo->X[i] = 0.0;
     }
 }

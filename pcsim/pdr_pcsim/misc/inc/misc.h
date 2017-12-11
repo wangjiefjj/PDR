@@ -7,10 +7,10 @@
 extern "C" {
 #endif
 
-#define     X               (0)
-#define     Y               (1)
-#define     Z               (2)
-#define     CHN             (3)
+#define     CHX               (0)
+#define     CHY               (1)
+#define     CHZ               (2)
+#define     CHN               (3)
 
 #ifndef     PI
 #define     PI              ((FLT)3.14159265358979323846)

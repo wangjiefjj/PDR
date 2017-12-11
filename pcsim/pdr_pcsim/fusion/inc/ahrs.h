@@ -1,18 +1,18 @@
 #ifndef _AHRS_H_
 #define _AHRS_H_
 
-#include "kalman.h"
 #include "types.h"
+#include "kalmanLite.h"
 #include "misc.h"
 
 #ifdef __cplusplus
 extern "C" {
 #endif
 
-#define     X               (0)
-#define     Y               (1)
-#define     Z               (2)
-#define     CHN             (3)
+#define     CHX               (0)
+#define     CHY               (1)
+#define     CHZ               (2)
+#define     CHN               (3)
 
     
     typedef struct quaternion

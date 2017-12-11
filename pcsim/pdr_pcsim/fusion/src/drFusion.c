@@ -29,7 +29,13 @@ static drFusionStatus_t errCorrection(kalmanInfo_t* const pKalmanInfo, drFusionD
 /*--------------------------------------------------------------------------*/
 U32 drKalmanInit(kalmanInfo_t* const pKalmanInfo)
 {
-    kalmanInit(pKalmanInfo, STATE_NUM, INIT_RMS);
+    U8 i;
+
+    kalmanInit(pKalmanInfo, STATE_NUM);
+    for (i = 0; i < STATE_NUM; i++)
+    {
+        pKalmanInfo->D_plus[i+1] = INIT_RMS[i] * INIT_RMS[i];
+    }
 
     return 0;
 }
@@ -48,7 +54,7 @@ drFusionStatus_t drKalmanExec(kalmanInfo_t* const pKalmanInfo, drFusionData_t* c
     drFusionStatus_t retvel;
 
     setPhimQd(pKalmanInfo);
-    predict(pKalmanInfo);
+    udKfPredict(pKalmanInfo);
     gnssMeasUpdate(pKalmanInfo, pFusionData);
     retvel = errCorrection(pKalmanInfo, pFusionData);
 
@@ -66,12 +72,12 @@ drFusionStatus_t drKalmanExec(kalmanInfo_t* const pKalmanInfo, drFusionData_t* c
 /*--------------------------------------------------------------------------*/
 static void setPhimQd(kalmanInfo_t* const pKalmanInfo)
 {
-    pKalmanInfo->pPhim[0][0] = 1.0F;
-    pKalmanInfo->pPhim[1][1] = 1.0F;
-    pKalmanInfo->pPhim[2][2] = 1.0F;
-    pKalmanInfo->pQd[0][0] = SIGMA_LAT;
-    pKalmanInfo->pQd[1][1] = SIGMA_LON;
-    pKalmanInfo->pQd[2][2] = SIGMA_HEADING;
+    pKalmanInfo->A[uMatIdx(1, 1, pKalmanInfo->stateNum)] = 1.0F;
+    pKalmanInfo->A[uMatIdx(2, 2, pKalmanInfo->stateNum)] = 1.0F;
+    pKalmanInfo->A[uMatIdx(3, 3, pKalmanInfo->stateNum)] = 1.0F;
+    pKalmanInfo->Q[0][0] = SIGMA_LAT;
+    pKalmanInfo->Q[1][1] = SIGMA_LON;
+    pKalmanInfo->Q[2][2] = SIGMA_HEADING;
 }
 
 /*-------------------------------------------------------------------------*/
@@ -93,11 +99,8 @@ static U32 gnssMeasUpdate(kalmanInfo_t* const pKalmanInfo, const drFusionData_t*
     DBL z[MEAS_GNSS_NUM] = {0.0};
     DBL h[MEAS_GNSS_NUM][STATE_NUM] = {0.0};
     DBL r[MEAS_GNSS_NUM] = {0.0};
-    DBL xSave[STATE_NUM];
-    DBL udSave[UD_NUM];
-    DBL ion = 0.0;
-    DBL res = 0.0;
     DBL test = 0.0;
+    DBL deltaX[STATE_NUM] = {0.0};
 
     DBL gnssLatitude = pFusionData->fGnssLatitude;
     DBL gnssLongitude = pFusionData->fGnssLongitude;
@@ -137,21 +140,12 @@ static U32 gnssMeasUpdate(kalmanInfo_t* const pKalmanInfo, const drFusionData_t*
             hc[j] = h[i][j];
         }
 
-        // save x,p in case the measurement is rejected
-        memcpy(xSave, pKalmanInfo->pStateX, sizeof(xSave));
-        memcpy(udSave, pKalmanInfo->pUd, sizeof(udSave));
+        test = udKFUpdate(pKalmanInfo, hc, deltaX, rc, zc, 5, UPDATE_SAVE);
+    }
 
-        // scalar measurement update
-        udMeasUpdate(pKalmanInfo->pUd, pKalmanInfo->pStateX, pKalmanInfo->uStateNum, rc, hc, zc, &ion, &res);
-        test = fabs(res) / sqrt(ion);
-
-        // reject this measurement
-        // 1. innovation test > 5, generally it is around 3.24
-        if (test > 5)
-        {
-            memcpy(pKalmanInfo->pStateX, xSave, sizeof(xSave));
-            memcpy(pKalmanInfo->pUd, udSave, sizeof(udSave));
-        }
+    for (i = 0; i < STATE_NUM; i++)
+    {
+        pKalmanInfo->X[i] += deltaX[i];
     }
 
     return 0;
@@ -170,15 +164,15 @@ static drFusionStatus_t errCorrection(kalmanInfo_t* const pKalmanInfo, drFusionD
 {
     drFusionStatus_t retvel = NoFix;
 
-    pFusionData->fPdrLatitude = pFusionData->fPdrLatitude + pKalmanInfo->pStateX[0]/RM(pFusionData->fGnssLatitude);
-    pFusionData->fPdrLongitude = pFusionData->fPdrLongitude + pKalmanInfo->pStateX[1]/RN(pFusionData->fGnssLatitude);
-    pKalmanInfo->pStateX[0] = 0.0F;
-    pKalmanInfo->pStateX[1] = 0.0F;
+    pFusionData->fPdrLatitude = pFusionData->fPdrLatitude + pKalmanInfo->X[0]/RM(pFusionData->fGnssLatitude);
+    pFusionData->fPdrLongitude = pFusionData->fPdrLongitude + pKalmanInfo->X[1]/RN(pFusionData->fGnssLatitude);
+    pKalmanInfo->X[0] = 0.0F;
+    pKalmanInfo->X[1] = 0.0F;
     retvel |= PosFix;
 
-    if (fabs(pKalmanInfo->pStateX[2]) < 10*DEG2RAD)
+    if (fabs(pKalmanInfo->X[2]) < 10*DEG2RAD)
     {
-        pFusionData->fPdrHeading = (FLT)(pFusionData->fPdrHeading + pKalmanInfo->pStateX[2]);
+        pFusionData->fPdrHeading = (FLT)(pFusionData->fPdrHeading + pKalmanInfo->X[2]);
 
         if (pFusionData->fPdrHeading > PI)
         {
@@ -188,7 +182,7 @@ static drFusionStatus_t errCorrection(kalmanInfo_t* const pKalmanInfo, drFusionD
         {
             pFusionData->fPdrHeading += 2*PI;
         }
-        pKalmanInfo->pStateX[2] = 0.0;
+        pKalmanInfo->X[2] = 0.0;
         retvel |= HeadingFix;
     }
 

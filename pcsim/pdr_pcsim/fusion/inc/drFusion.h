@@ -1,8 +1,8 @@
 #ifndef _DRFUSION_H_
 #define _DRFUSION_H_
 
-#include "kalman.h"
 #include "types.h"
+#include "kalmanLite.h"
 #include "misc.h"
 
 #ifdef __cplusplus

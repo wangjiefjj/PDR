@@ -80,27 +80,27 @@ U32 magBufferUpdate(magneticBuffer_t * const pMagBuffer, const FLT* const pMagRa
     U32 iclose = 0;
 
     // convert float mag data to int mag data to reduce multiplications
-    for (i = X; i <= Z; i++)
+    for (i = CHX; i <= CHZ; i++)
     {
         iMagRaw[i] = (S32)(pMagRaw[i] * pMagBuffer->fCountsPeruT);
         iMagCal[i] = (S32)(pMagCal[i] * pMagBuffer->fCountsPeruT);
     }
     
-    if (iMagCal[Z] == 0)
+    if (iMagCal[CHZ] == 0)
     {
         return -1;
     }
-    itanj = 100 * iMagCal[X] / iMagCal[Z];
-    itank = 100 * iMagCal[Y] / iMagCal[Z];
+    itanj = 100 * iMagCal[CHX] / iMagCal[CHZ];
+    itank = 100 * iMagCal[CHY] / iMagCal[CHZ];
     while ((j < (MAGBUFFSIZEX - 1) && (itanj >= pMagBuffer->tanarray[j]))) j++;
     while ((k < (MAGBUFFSIZEX - 1) && (itank >= pMagBuffer->tanarray[k]))) k++;
-    if (iMagCal[X] < 0) k += MAGBUFFSIZEX;
+    if (iMagCal[CHX] < 0) k += MAGBUFFSIZEX;
 
     // case 1: buffer is full and this bin has a measurement: over-write without increasing number of measurements
     // this is the most common option at run time
     if ((pMagBuffer->iMagBufferCount == MAXMEASUREMENTS) && (pMagBuffer->index[j][k] != -1))
     {
-        for (i = X; i <= Z; i++)
+        for (i = CHX; i <= CHZ; i++)
         {
             pMagBuffer->iMagRaw[i][j][k] = iMagRaw[i];
         }
@@ -113,7 +113,7 @@ U32 magBufferUpdate(magneticBuffer_t * const pMagBuffer, const FLT* const pMagRa
     // this is the second most common option at run time
     if ((pMagBuffer->iMagBufferCount == MAXMEASUREMENTS) && (pMagBuffer->index[j][k] == -1))
     {
-        for (i = X; i <= Z; i++)
+        for (i = CHX; i <= CHZ; i++)
         {
             pMagBuffer->iMagRaw[i][j][k] = iMagRaw[i];
         }
@@ -148,7 +148,7 @@ U32 magBufferUpdate(magneticBuffer_t * const pMagBuffer, const FLT* const pMagRa
     // case 3: buffer is not full and this bin is empty: store and increment number of measurements
     if ((pMagBuffer->iMagBufferCount < MAXMEASUREMENTS) && (pMagBuffer->index[j][k] == -1))
     {
-        for (i = X; i <= Z; i++)
+        for (i = CHX; i <= CHZ; i++)
         {
             pMagBuffer->iMagRaw[i][j][k] = iMagRaw[i];
         }
@@ -164,7 +164,7 @@ U32 magBufferUpdate(magneticBuffer_t * const pMagBuffer, const FLT* const pMagRa
 	{
 		// calculate the vector difference between current measurement and the buffer entry
 		idelta = 0;
-		for (i = X; i <= Z; i++)
+		for (i = CHX; i <= CHZ; i++)
 		{
 			idelta += abs(iMagRaw[i] - pMagBuffer->iMagRaw[i][j][k]);
 		}
@@ -172,7 +172,7 @@ U32 magBufferUpdate(magneticBuffer_t * const pMagBuffer, const FLT* const pMagRa
 		if (idelta < MESHDELTAUT * pMagBuffer->fCountsPeruT)
 		{
 			// simply over-write the measurement and return
-			for (i = X; i <= Z; i++)
+			for (i = CHX; i <= CHZ; i++)
 			{
 				pMagBuffer->iMagRaw[i][j][k] = iMagRaw[i];
 			}
@@ -197,7 +197,7 @@ U32 magBufferUpdate(magneticBuffer_t * const pMagBuffer, const FLT* const pMagRa
 					{
 						// calculate the vector difference between current measurement and the buffer entry
 						idelta = 0;
-						for (i = X; i <= Z; i++)
+						for (i = CHX; i <= CHZ; i++)
 						{
 							idelta += abs(iMagRaw[i] - pMagBuffer->iMagRaw[i][j][k]);
 						}
@@ -223,7 +223,7 @@ U32 magBufferUpdate(magneticBuffer_t * const pMagBuffer, const FLT* const pMagRa
 			// l and m are guaranteed to be set if no entries too close are detected
 			if (!iclose)
 			{
-				for (i = X; i <= Z; i++)
+				for (i = CHX; i <= CHZ; i++)
 				{
 					pMagBuffer->iMagRaw[i][l][m] = iMagRaw[i];
 				}
@@ -274,7 +274,7 @@ U32 magCalibrationExec(magCalibration_t* const pMagCalibration, const magneticBu
             {
                 if (pMagBuffer->index[i][j] != -1)
                 {
-                    fprintf(fp, "%d %d %d\n", pMagBuffer->iMagRaw[X][i][j], pMagBuffer->iMagRaw[Y][i][j], pMagBuffer->iMagRaw[Z][i][j]);
+                    fprintf(fp, "%d %d %d\n", pMagBuffer->iMagRaw[CHX][i][j], pMagBuffer->iMagRaw[CHY][i][j], pMagBuffer->iMagRaw[CHZ][i][j]);
                 }
             }
         }
@@ -299,7 +299,7 @@ U32 magCalibrationExec(magCalibration_t* const pMagCalibration, const magneticBu
             {
                 if (pMagBuffer->index[i][j] != -1)
                 {
-                    fprintf(fp, "%d %d %d\n", pMagBuffer->iMagRaw[X][i][j], pMagBuffer->iMagRaw[Y][i][j], pMagBuffer->iMagRaw[Z][i][j]);
+                    fprintf(fp, "%d %d %d\n", pMagBuffer->iMagRaw[CHX][i][j], pMagBuffer->iMagRaw[CHY][i][j], pMagBuffer->iMagRaw[CHZ][i][j]);
                 }
             }
         }
@@ -320,10 +320,10 @@ U32 magCalibrationExec(magCalibration_t* const pMagCalibration, const magneticBu
             pMagCalibration->iValidMagCal = isolver;
             pMagCalibration->fFitErrorpc = pMagCalibration->ftrFitErrorpc;
             pMagCalibration->fB = pMagCalibration->ftrB;
-            for (i = X; i <= Z; i++)
+            for (i = CHX; i <= CHZ; i++)
             {
                 pMagCalibration->fV[i] = pMagCalibration->ftrV[i];
-                for (j = X; j <= Z; j++)
+                for (j = CHX; j <= CHZ; j++)
                 {
                     pMagCalibration->finvW[i][j] = pMagCalibration->ftrinvW[i][j];
                 }
@@ -349,14 +349,14 @@ void magCorrection(FLT mag[], const magCalibration_t* const pMagCalibration)
     FLT ftemp[CHN] = {0.0};
 
     // remove the computed hard iron offsets (uT): ftmp[] = fmag[] - fV[]
-    for (i = X; i <= Z; i++)
+    for (i = CHX; i <= CHZ; i++)
     {
         ftemp[i] = mag[i] - pMagCalibration->fV[i];
     }
     // remove the computed soft iron offsets (uT): fmag = inv(W)*(fmag[] - fV[])
-    for (i = X; i <= Z; i++)
+    for (i = CHX; i <= CHZ; i++)
     {
-        mag[i] = pMagCalibration->finvW[i][X]*ftemp[X] + pMagCalibration->finvW[i][Y]*ftemp[Y] + pMagCalibration->finvW[i][Z]*ftemp[Z];
+        mag[i] = pMagCalibration->finvW[i][CHX]*ftemp[CHX] + pMagCalibration->finvW[i][CHY]*ftemp[CHY] + pMagCalibration->finvW[i][CHZ]*ftemp[CHZ];
     }
 }
 
@@ -396,7 +396,7 @@ static void updateCalibration4INV(magCalibration_t* const pMagCalibration, const
             pMagCalibration->fmatA[i][j] = 0.0F;
         }
     }
-    iOffset[X] = iOffset[Y] = iOffset[Z] = 0;
+    iOffset[CHX] = iOffset[CHY] = iOffset[CHZ] = 0;
     iCount = 0;
     for (j = 0; j < MAGBUFFSIZEX; j++)
     {
@@ -406,32 +406,32 @@ static void updateCalibration4INV(magCalibration_t* const pMagCalibration, const
             {
                 if (iCount == 0)
                 {
-                    for (l = X; l <= Z; l++)
+                    for (l = CHX; l <= CHZ; l++)
                     {
                         iOffset[l] = pMagBuffer->iMagRaw[l][j][k];
                     }
                 }
-                for (l = X; l <= Z; l++)
+                for (l = CHX; l <= CHZ; l++)
                 {
                     pMagCalibration->fvecA[l] = (FLT)(pMagBuffer->iMagRaw[l][j][k] - iOffset[l]) * fscaling;
                     pMagCalibration->fvecA[l + 3] = pMagCalibration->fvecA[l] * pMagCalibration->fvecA[l];
                 }
                 fBs2 = pMagCalibration->fvecA[3] + pMagCalibration->fvecA[4] + pMagCalibration->fvecA[5];
                 fSumBs4 += fBs2 * fBs2;
-                for (l = X; l <= Z; l++)
+                for (l = CHX; l <= CHZ; l++)
                 {
                     pMagCalibration->fvecB[l] += pMagCalibration->fvecA[l] * fBs2;
                 }
                 pMagCalibration->fvecB[3] += fBs2;
-                pMagCalibration->fmatA[0][0] += pMagCalibration->fvecA[X + 3];
-                pMagCalibration->fmatA[0][1] += pMagCalibration->fvecA[X] * pMagCalibration->fvecA[Y];
-                pMagCalibration->fmatA[0][2] += pMagCalibration->fvecA[X] * pMagCalibration->fvecA[Z];
-                pMagCalibration->fmatA[0][3] += pMagCalibration->fvecA[X];
-                pMagCalibration->fmatA[1][1] += pMagCalibration->fvecA[Y + 3];
-                pMagCalibration->fmatA[1][2] += pMagCalibration->fvecA[Y] * pMagCalibration->fvecA[Z];
-                pMagCalibration->fmatA[1][3] += pMagCalibration->fvecA[Y];
-                pMagCalibration->fmatA[2][2] += pMagCalibration->fvecA[Z + 3];
-                pMagCalibration->fmatA[2][3] += pMagCalibration->fvecA[Z];
+                pMagCalibration->fmatA[0][0] += pMagCalibration->fvecA[CHX + 3];
+                pMagCalibration->fmatA[0][1] += pMagCalibration->fvecA[CHX] * pMagCalibration->fvecA[CHY];
+                pMagCalibration->fmatA[0][2] += pMagCalibration->fvecA[CHX] * pMagCalibration->fvecA[CHZ];
+                pMagCalibration->fmatA[0][3] += pMagCalibration->fvecA[CHX];
+                pMagCalibration->fmatA[1][1] += pMagCalibration->fvecA[CHY + 3];
+                pMagCalibration->fmatA[1][2] += pMagCalibration->fvecA[CHY] * pMagCalibration->fvecA[CHZ];
+                pMagCalibration->fmatA[1][3] += pMagCalibration->fvecA[CHY];
+                pMagCalibration->fmatA[2][2] += pMagCalibration->fvecA[CHZ + 3];
+                pMagCalibration->fmatA[2][3] += pMagCalibration->fvecA[CHZ];
                 iCount++;
             }
         }
@@ -475,15 +475,15 @@ static void updateCalibration4INV(magCalibration_t* const pMagCalibration, const
     {
         fE += pMagCalibration->fvecB[i] * pMagCalibration->fvecA[i];
     }
-    for (l = X; l <= Z; l++)
+    for (l = CHX; l <= CHZ; l++)
     {
         pMagCalibration->ftrV[l] = 0.5F * pMagCalibration->fvecA[l];
     }
-    pMagCalibration->ftrB = sqrtf(pMagCalibration->fvecA[3] + pMagCalibration->ftrV[X] * pMagCalibration->ftrV[X] +
-        pMagCalibration->ftrV[Y] * pMagCalibration->ftrV[Y] + pMagCalibration->ftrV[Z] * pMagCalibration->ftrV[Z]);
+    pMagCalibration->ftrB = sqrtf(pMagCalibration->fvecA[3] + pMagCalibration->ftrV[CHX] * pMagCalibration->ftrV[CHX] +
+        pMagCalibration->ftrV[CHY] * pMagCalibration->ftrV[CHY] + pMagCalibration->ftrV[CHZ] * pMagCalibration->ftrV[CHZ]);
     pMagCalibration->ftrFitErrorpc = sqrtf(fE * 1.0F / pMagBuffer->iMagBufferCount) * 100.0F /
         (2.0F * pMagCalibration->ftrB * pMagCalibration->ftrB);
-    for (l = X; l <= Z; l++)
+    for (l = CHX; l <= CHZ; l++)
     {
         pMagCalibration->ftrV[l] = (FLT)(pMagCalibration->ftrV[l] * DEFAULTB + iOffset[l] * 1.0 * pMagBuffer->fuTPerCount);
     }
@@ -511,7 +511,7 @@ static void updateCalibration7EIG(magCalibration_t* const pMagCalibration, const
     U32 i, j, k, l, m, n;
 
     fscaling = pMagBuffer->fuTPerCount / DEFAULTB;
-    iOffset[X] = iOffset[Y] = iOffset[Z] = 0;
+    iOffset[CHX] = iOffset[CHY] = iOffset[CHZ] = 0;
     for (m = 0; m < 7; m++)
     {
         for (n = m; n < 7; n++)
@@ -528,12 +528,12 @@ static void updateCalibration7EIG(magCalibration_t* const pMagCalibration, const
             {
                 if (iCount == 0)
                 {
-                    for (l = X; l <= Z; l++)
+                    for (l = CHX; l <= CHZ; l++)
                     {
                         iOffset[l] = pMagBuffer->iMagRaw[l][j][k];
                     }
                 }
-                for (l = X; l <= Z; l++)
+                for (l = CHX; l <= CHZ; l++)
                 {
                     pMagCalibration->fvecA[l + 3] = (FLT)(pMagBuffer->iMagRaw[l][j][k] - iOffset[l]) * fscaling;
                     pMagCalibration->fvecA[l] = pMagCalibration->fvecA[l + 3] * pMagCalibration->fvecA[l + 3];
@@ -574,7 +574,7 @@ static void updateCalibration7EIG(magCalibration_t* const pMagCalibration, const
     }
     f3x3matrixEqScalar(pMagCalibration->fA, 0.0F);
     det = 1.0F;
-    for (l = X; l <= Z; l++)
+    for (l = CHX; l <= CHZ; l++)
     {
         pMagCalibration->fA[l][l] = pMagCalibration->fmatB[l][j];
         det *= pMagCalibration->fA[l][l];
@@ -587,7 +587,7 @@ static void updateCalibration7EIG(magCalibration_t* const pMagCalibration, const
         det = -det;
     }
     ftmp = -pMagCalibration->fmatB[6][j];
-    for (l = X; l <= Z; l++)
+    for (l = CHX; l <= CHZ; l++)
     {
         ftmp += pMagCalibration->fA[l][l] * pMagCalibration->ftrV[l] * pMagCalibration->ftrV[l];
     }
@@ -595,7 +595,7 @@ static void updateCalibration7EIG(magCalibration_t* const pMagCalibration, const
     f3x3matrixEqAxScalar(pMagCalibration->fA, powf(det, -(1.0F/3.0F)));
     pMagCalibration->ftrB = sqrtf(fabsf(ftmp)) * DEFAULTB * powf(det, -(1.0F/6.0F));
     f3x3matrixEqI(pMagCalibration->ftrinvW);
-    for (l = X; l <= Z; l++)
+    for (l = CHX; l <= CHZ; l++)
     {
         pMagCalibration->ftrinvW[l][l] = sqrtf(fabsf(pMagCalibration->fA[l][l]));
         pMagCalibration->ftrV[l] = pMagCalibration->ftrV[l] * DEFAULTB + (FLT)iOffset[l] * pMagBuffer->fuTPerCount;

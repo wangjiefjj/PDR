@@ -91,7 +91,7 @@ void predict(kalmanInfo_t* const pkalmanInfo)
         pstateVector[i] = 0.0;
         for (j = 0; j < stateNum; j++)
         {
-            pstateVector[i] += pkalmanInfo->pPhim[i][j] * pkalmanInfo->pStateX[i];
+            pstateVector[i] += pkalmanInfo->pPhim[i][j] * pkalmanInfo->pStateX[j];
         }
     }
 

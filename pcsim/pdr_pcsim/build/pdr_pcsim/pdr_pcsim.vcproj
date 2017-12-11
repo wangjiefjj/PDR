@@ -180,7 +180,7 @@
 				>
 			</File>
 			<File
-				RelativePath="..\..\fusion\src\kalman.c"
+				RelativePath="..\..\fusion\src\kalmanLite.c"
 				>
 			</File>
 			<File
@@ -218,7 +218,7 @@
 				>
 			</File>
 			<File
-				RelativePath="..\..\fusion\inc\kalman.h"
+				RelativePath="..\..\fusion\inc\kalmanLite.h"
 				>
 			</File>
 			<File

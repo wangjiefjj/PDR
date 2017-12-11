@@ -145,7 +145,7 @@ static void seDataProc(const sensorData_t* const pSensorData)
 
     /* sensor data correction */
     utime = pSensorData->uTime;
-    for (i = X; i <= Z; i++)
+    for (i = CHX; i <= CHZ; i++)
     {
         fgyro[i] = pSensorData->fGyro[i];
         facc[i] = pSensorData->fAcc[i];
@@ -192,7 +192,7 @@ static void seDataProc(const sensorData_t* const pSensorData)
     {
         // gyro data smooth
         gyroSmooth(fgyro, GyroSmoothBuffer);
-        for (i = X; i <= Z; i++)
+        for (i = CHX; i <= CHZ; i++)
         {
             if (fabsf(fgyro[i]) < 0.1)
             {
@@ -449,7 +449,7 @@ static void gyroSmooth(FLT fgyro[], FLT gyroBuffer[][CHN])
 
     if (ucount < GYRO_BUFFER_LEN)
     {
-        for (i = X; i <= Z; i++)
+        for (i = CHX; i <= CHZ; i++)
         {
             gyroBuffer[ucount][i] = fgyro[i];
         }
@@ -459,12 +459,12 @@ static void gyroSmooth(FLT fgyro[], FLT gyroBuffer[][CHN])
         ucount = GYRO_BUFFER_LEN;
         for (i = 0; i < GYRO_BUFFER_LEN - 1; i++)
         {
-            for (j = X; j <= Z; j++)
+            for (j = CHX; j <= CHZ; j++)
             {
                 gyroBuffer[i][j] = gyroBuffer[i+1][j];
             }
         }
-        for (j = X; j <= Z; j++)
+        for (j = CHX; j <= CHZ; j++)
         {
             gyroBuffer[GYRO_BUFFER_LEN - 1][j] = fgyro[j];
         }
@@ -473,12 +473,12 @@ static void gyroSmooth(FLT fgyro[], FLT gyroBuffer[][CHN])
     {
         for (i = 0; i < ucount - 1; i++)
         {
-            for (j = X; j <= Z; j++)
+            for (j = CHX; j <= CHZ; j++)
             {
                 gyroSum[j] += gyroBuffer[i][j];
             }
         }
-        for (i = X; i <= Z; i++)
+        for (i = CHX; i <= CHZ; i++)
         {
             fgyro[i] = gyroSum[i] / ucount;
         }
@@ -513,7 +513,7 @@ static U32 staticDetect(const FLT gyro[], const FLT acc[])
 
     if (uCount < ALIGN_NUM)
     {
-        for (i = X; i <= Z; i++)
+        for (i = CHX; i <= CHZ; i++)
         {
             AlignGyroArray[uCount][i] = gyro[i];
             AlignAccArray[uCount][i] = acc[i];
@@ -523,13 +523,13 @@ static U32 staticDetect(const FLT gyro[], const FLT acc[])
     {
         for(i = 0; i < ALIGN_NUM - 1; i++)
         {
-            for (j = X; j <= Z; j++)
+            for (j = CHX; j <= CHZ; j++)
             {
                 AlignGyroArray[i][j] = AlignGyroArray[i+1][j];
                 AlignAccArray[i][j] = AlignAccArray[i+1][j];
             }
         }
-        for (i = X; i <= Z; i++)
+        for (i = CHX; i <= CHZ; i++)
         {
             AlignGyroArray[ALIGN_NUM-1][i] = gyro[i];
             AlignAccArray[ALIGN_NUM-1][i] = acc[i];
@@ -576,20 +576,20 @@ static void gyroCalibration(FLT gyroBias[])
 
     for (i = 0; i < ALIGN_NUM; i++)
     {
-        fgyroSum[X] += AlignGyroArray[i][X];
-        fgyroSum[Y] += AlignGyroArray[i][Y];
-        fgyroSum[Z] += AlignGyroArray[i][Z];
+        fgyroSum[CHX] += AlignGyroArray[i][CHX];
+        fgyroSum[CHY] += AlignGyroArray[i][CHY];
+        fgyroSum[CHZ] += AlignGyroArray[i][CHZ];
     }
-    gyroBias[X] += (FLT)(fgyroSum[X] * 1.0 / ALIGN_NUM);
-    gyroBias[Y] += (FLT)(fgyroSum[Y] * 1.0 / ALIGN_NUM);
-    gyroBias[Z] += (FLT)(fgyroSum[Z] * 1.0 / ALIGN_NUM);
+    gyroBias[CHX] += (FLT)(fgyroSum[CHX] * 1.0 / ALIGN_NUM);
+    gyroBias[CHY] += (FLT)(fgyroSum[CHY] * 1.0 / ALIGN_NUM);
+    gyroBias[CHZ] += (FLT)(fgyroSum[CHZ] * 1.0 / ALIGN_NUM);
 
     // clear gyro buffer
     for (i = 0; i < ALIGN_NUM; i++)
     {
-        AlignGyroArray[i][X] = 0;
-        AlignGyroArray[i][Y] = 0;
-        AlignGyroArray[i][Z] = 0;
+        AlignGyroArray[i][CHX] = 0;
+        AlignGyroArray[i][CHY] = 0;
+        AlignGyroArray[i][CHZ] = 0;
     }
 }
 
@@ -613,16 +613,16 @@ static FLT magQualityControl(FLT fmag[], const ahrsFixData_t* const pAhrsFixData
     // check mag vector residual
     magVector[0] = AhrsFixData.fB * cosf(AhrsFixData.fDelta);
     magVector[2] = AhrsFixData.fB * sinf(AhrsFixData.fDelta);
-    for (i = X; i <= Z; i++)
+    for (i = CHX; i <= CHZ; i++)
     {
-        magEstimate[i] = AhrsFixData.fCbn[i][X] * fmag[X] + AhrsFixData.fCbn[i][Y] * fmag[Y] + AhrsFixData.fCbn[i][Z] * fmag[Z];
+        magEstimate[i] = AhrsFixData.fCbn[i][CHX] * fmag[CHX] + AhrsFixData.fCbn[i][CHY] * fmag[CHY] + AhrsFixData.fCbn[i][CHZ] * fmag[CHZ];
     }
 
-    magResidual[X] = magVector[X] - magEstimate[X];
-    magResidual[Y] = magVector[Y] - magEstimate[Y];
-    magResidual[Z] = magVector[Z] - magEstimate[Z];
+    magResidual[CHX] = magVector[CHX] - magEstimate[CHX];
+    magResidual[CHY] = magVector[CHY] - magEstimate[CHY];
+    magResidual[CHZ] = magVector[CHZ] - magEstimate[CHZ];
 
-    ferror = magResidual[X];
+    ferror = magResidual[CHX];
 
     return ferror;
 }

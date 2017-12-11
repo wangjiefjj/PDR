@@ -96,7 +96,7 @@ U32 computeMeanStd(FLT* const mean, FLT* const std, const FLT array[][CHN], U32 
     {
         FLT det = 0;
 
-        det = sqrtf(array[i][X]*array[i][X] + array[i][Y]*array[i][Y] + array[i][Z]*array[i][Z]);
+        det = sqrtf(array[i][CHX]*array[i][CHX] + array[i][CHY]*array[i][CHY] + array[i][CHZ]*array[i][CHZ]);
         sum += det;
     }
     *mean = sum / count;
@@ -106,7 +106,7 @@ U32 computeMeanStd(FLT* const mean, FLT* const std, const FLT array[][CHN], U32 
     {
         FLT det = 0;
 
-        det = sqrtf(array[i][X]*array[i][X] + array[i][Y]*array[i][Y] + array[i][Z]*array[i][Z]);
+        det = sqrtf(array[i][CHX]*array[i][CHX] + array[i][CHY]*array[i][CHY] + array[i][CHZ]*array[i][CHZ]);
         sum += (det - *mean) * (det - *mean);
     }
     *std = sqrtf(sum / (count - 1.0F));
@@ -125,9 +125,9 @@ U32 computeMeanStd(FLT* const mean, FLT* const std, const FLT array[][CHN], U32 
 /*--------------------------------------------------------------------------*/
 void dcm2euler(const FLT cbn[3][3], FLT* const pyaw, FLT* const ppitch, FLT* const proll)
 {
-    *pyaw = atan2f(cbn[Y][X], cbn[X][X]);
-    *ppitch = asinf(-cbn[Z][X]);
-    *proll = atan2f(cbn[Z][Y], cbn[Z][Z]);
+    *pyaw = atan2f(cbn[CHY][CHX], cbn[CHX][CHX]);
+    *ppitch = asinf(-cbn[CHZ][CHX]);
+    *proll = atan2f(cbn[CHZ][CHY], cbn[CHZ][CHZ]);
 }
 
 /*-------------------------------------------------------------------------*/

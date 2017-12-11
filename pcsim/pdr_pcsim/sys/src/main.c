@@ -117,15 +117,15 @@ static U32 praseData(char *str, pdrData_t *pdrData)
 
         case SENSOR_DATA:
             pdrData->sensorData.uTime = atoi(section[1]);
-            pdrData->sensorData.fAcc[X] = (FLT)atof(section[2]);
-            pdrData->sensorData.fAcc[Y] = (FLT)atof(section[3]);
-            pdrData->sensorData.fAcc[Z] = (FLT)atof(section[4]);
-            pdrData->sensorData.fGyro[X] = (FLT)atof(section[5]);
-            pdrData->sensorData.fGyro[Y] = (FLT)atof(section[6]);
-            pdrData->sensorData.fGyro[Z] = (FLT)atof(section[7]);
-            pdrData->sensorData.fMag[X] = (FLT)atof(section[8]);
-            pdrData->sensorData.fMag[Y] = (FLT)atof(section[9]);
-            pdrData->sensorData.fMag[Z] = (FLT)atof(section[10]);
+            pdrData->sensorData.fAcc[CHX] = (FLT)atof(section[2]);
+            pdrData->sensorData.fAcc[CHY] = (FLT)atof(section[3]);
+            pdrData->sensorData.fAcc[CHZ] = (FLT)atof(section[4]);
+            pdrData->sensorData.fGyro[CHX] = (FLT)atof(section[5]);
+            pdrData->sensorData.fGyro[CHY] = (FLT)atof(section[6]);
+            pdrData->sensorData.fGyro[CHZ] = (FLT)atof(section[7]);
+            pdrData->sensorData.fMag[CHX] = (FLT)atof(section[8]);
+            pdrData->sensorData.fMag[CHY] = (FLT)atof(section[9]);
+            pdrData->sensorData.fMag[CHZ] = (FLT)atof(section[10]);
             break;
     }
 
