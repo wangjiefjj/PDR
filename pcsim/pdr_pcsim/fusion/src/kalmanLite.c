@@ -57,6 +57,7 @@ static U32 freeArray2D_DBL(DBL **pmatrix, U32 row, U32 col)
     {
         free(pmatrix[i]);
     }
+	free(pmatrix);
 
     return 0;
 }
