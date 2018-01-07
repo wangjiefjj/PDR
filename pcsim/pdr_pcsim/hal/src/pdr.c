@@ -12,11 +12,26 @@
 #define     GYRO_BUFFER_LEN     (50)
 #define     AVE_NUM             (5)
 
+#define     ACC_STATIC          (0.1)
+#define     GYRO_STATIC         (0.01)
+#define     ACC_REST            (1.0)
+#define     GYRO_REST           (0.1)
+#define     ALIGN_NUM           (100)
+
+enum
+{
+    UNSURE = 0,
+    MOVE = 1,
+    REST = 2,
+    STATIC = 3,
+};
+
 typedef struct pdrCtrl
 {
-    U32   uStaticFlag;
-    U32   uHorizonAlignFlag;
-    U32   uHeadingAlignFlag;
+    U32   uMotionFlag;
+    U32   uDeviceHorizonAlignFlag;
+    U32   uDeviceHeadingAlignFlag;
+    U32   uPedestrianAlignFlag;
     U32   uPdrNavFlag;
 } pdrCtrl_t;
 
@@ -25,7 +40,8 @@ typedef struct pdrInfo
     U32 uTime;
     DBL fLatitude;
     DBL fLongitude;
-    DBL fAltitude;
+    FLT fAltitude;
+    FLT fHeading;
 } pdrInfo_t;
 
 static magneticBuffer_t MagBuffer;
@@ -37,18 +53,28 @@ static stepInfo_t StepInfo;
 static pdrCtrl_t PdrCtrl;
 static pdrInfo_t PdrInfo;
 static FLT GyroSmoothBuffer[GYRO_BUFFER_LEN][CHN];
-extern FILE* FpAhrs;
-extern FILE* FpStep;
-extern FILE* FpOutput;
+static FLT AlignGyroArray[ALIGN_NUM][CHN] = {0};
+static FLT AlignAccArray[ALIGN_NUM][CHN] = {0};
 
 static void seDataProc(const sensorData_t* const pSensorData);
 static void gnssDataProc(const gnssData_t* const pGnssData);
 static void sensorDataCorrection(FLT gyro[], FLT acc[], FLT mag[]);
-static U32 initialAlignment(const FLT facc[], const FLT fmag[]);
+static U32 deviceAlignment(const FLT facc[], const FLT fmag[]);
 static void gyroSmooth(FLT fgyro[], FLT gyroBuffer[][CHN]);
 static U32 staticDetect(const FLT gyro[], const FLT acc[]);
 static void gyroCalibration(FLT gyroBias[]);
 static FLT magQualityControl(FLT mag[], const ahrsFixData_t* const pAhrsFixData);
+static U32 pedestrianAlignment(const gnssData_t* const pGnssData, FLT *pHeading);
+
+#ifndef ECOS
+
+#ifdef DEBUG
+    extern FILE* FpAhrs;
+    extern FILE* FpStep;
+    extern FILE* FpOutput;
+#endif
+
+#endif
 
 /*-------------------------------------------------------------------------*/
 /**
@@ -61,11 +87,15 @@ static FLT magQualityControl(FLT mag[], const ahrsFixData_t* const pAhrsFixData)
 /*--------------------------------------------------------------------------*/
 U32 pdrNavInit()
 {
+#if MAG_SUPPORT
+
     if (magCalibrationInit(&MagCalibration, &MagBuffer))
     {
         printf("mag calibration init failed!\r\n");
         return -1;
     }
+
+#endif
 
     if (ahrsInit(&AhrsFixData))
     {
@@ -136,9 +166,9 @@ static void seDataProc(const sensorData_t* const pSensorData)
     U32 utime = 0;
     U32 i = 0;
     U32 retval;
-    FLT fgyro[CHN] = {0};
-    FLT facc[CHN] = {0};
-    FLT fmag[CHN] = {0};
+    FLT fgyro[CHN] = {0};  // Calibrated gyro data
+    FLT facc[CHN] = {0};   // Calibrated acc data
+    FLT fmag[CHN] = {0};   // Calibrated mag data
     static U32 LoopCounter = 0;
     static U32 AccLoopCounter = 0;
     static FLT AccDetSum = 0.0;
@@ -152,6 +182,8 @@ static void seDataProc(const sensorData_t* const pSensorData)
         fmag[i] = pSensorData->fMag[i];
     }
     sensorDataCorrection(fgyro, facc, fmag);
+
+#if MAG_SUPPORT
 
     /* mag calibration */
     magBufferUpdate(&MagBuffer, pSensorData->fMag, fmag, LoopCounter);
@@ -172,13 +204,21 @@ static void seDataProc(const sensorData_t* const pSensorData)
 #endif
     }
 
-    /* static detect */
-    PdrCtrl.uStaticFlag = staticDetect(fgyro, facc);
+#endif
 
-    /* initial alignment */
+    /* static detect */
+    PdrCtrl.uMotionFlag = staticDetect(pSensorData->fGyro, pSensorData->fAcc);
+
+    /* Gyro calibration if device is strictly static */
+    if (PdrCtrl.uMotionFlag == STATIC)
+    {
+        gyroCalibration(AhrsFixData.fGyroBias);
+    }
+
+    /* device initial alignment */
     // note: dip angle is computed in initial alignment which is executed only once.
     //       so if work for a long time, the dip angle need to be recomputed.
-    if (retval = initialAlignment(facc, fmag))
+    if (retval = deviceAlignment(facc, fmag))
     {
         AhrsFixData.uTime = utime;
 #ifdef DEBUG
@@ -188,7 +228,7 @@ static void seDataProc(const sensorData_t* const pSensorData)
     }
 
     /* start AHRS loop */
-    if (PdrCtrl.uHorizonAlignFlag == 1)
+    if (PdrCtrl.uDeviceHorizonAlignFlag == 1)
     {
         // gyro data smooth
         gyroSmooth(fgyro, GyroSmoothBuffer);
@@ -200,7 +240,7 @@ static void seDataProc(const sensorData_t* const pSensorData)
             }
         }
         quaternionIntegration(utime, fgyro, &AhrsFixData);
-        if (PdrCtrl.uHeadingAlignFlag == 1 && MagCalibration.iValidMagCal != 0)
+        if (PdrCtrl.uDeviceHeadingAlignFlag == 1 && MagCalibration.iValidMagCal != 0)
         {
             FLT ferror = 0.0F;
 
@@ -284,21 +324,58 @@ static void gnssDataProc(const gnssData_t* const pGnssData)
     FLT gnssVel = 0.0F;
     FLT fq[4];
 
+    if (pGnssData->uGnssFix != GNSS_FIX_NONE)
+    {
+
+    }
+    else
+    {
+        // no gnss fix
+
+       // return;
+    }
+
     memset(&drFusionData, 0, sizeof(drFusionData_t));
 
     if (PdrCtrl.uPdrNavFlag != 1)
     {
-        if (PdrCtrl.uHeadingAlignFlag == 1 && PdrCtrl.uHorizonAlignFlag == 1)
+        if (PdrCtrl.uPedestrianAlignFlag != 1)
+        {
+            // heading alignment
+            FLT heading = 0;
+
+            if (pedestrianAlignment(pGnssData, &heading))
+            {
+                // pedestrian heading alignment succeed
+                PdrCtrl.uPedestrianAlignFlag = 1;
+                PdrInfo.fHeading = heading;
+            }
+        }
+
+        // device alignment and pedestrian alignment succeed
+        if (PdrCtrl.uDeviceHorizonAlignFlag == 1 &&
+            PdrCtrl.uDeviceHeadingAlignFlag == 1 &&
+            PdrCtrl.uPedestrianAlignFlag == 1
+            )
         {
             PdrCtrl.uPdrNavFlag = 1;
             PdrInfo.uTime = pGnssData->uTime;
             PdrInfo.fLatitude = pGnssData->fLatitude;
             PdrInfo.fLongitude = pGnssData->fLongitude;
             PdrInfo.fAltitude = pGnssData->fAltitude;
-        }
-        else
-        {
-            // initial alignment not complete
+
+            /* !!!only for gyro and acc aiding and device attitude is fixed!!! */
+            AhrsFixData.fPsiPl = PdrInfo.fHeading;
+
+            euler2q(fq, AhrsFixData.fPsiPl, AhrsFixData.fThePl, AhrsFixData.fPhiPl);
+            AhrsFixData.fqPl.q0 = fq[0];
+            AhrsFixData.fqPl.q1 = fq[1];
+            AhrsFixData.fqPl.q2 = fq[2];
+            AhrsFixData.fqPl.q3 = fq[3];
+
+            q2dcm(fq, AhrsFixData.fCbn);
+            memcpy(AhrsFixData.fCnb, AhrsFixData.fCbn, sizeof(AhrsFixData.fCnb));
+            f3x3matrixTranspose(AhrsFixData.fCnb);
         }
 
         return;
@@ -313,7 +390,7 @@ static void gnssDataProc(const gnssData_t* const pGnssData)
         drFusionData.utime = pGnssData->uTime;
         drFusionData.fGnssLatitude = pGnssData->fLatitude;
         drFusionData.fGnssLongitude = pGnssData->fLongitude;
-        drFusionData.fGnssHeading = pGnssData->fHeading;
+        drFusionData.fGnssHeading = atan2f(pGnssData->fVelE, pGnssData->fVelN);
         drFusionData.fPdrLatitude = PdrInfo.fLatitude;
         drFusionData.fPdrLongitude = PdrInfo.fLongitude;
         drFusionData.fPdrHeading = AhrsFixData.fPsiPl;
@@ -384,55 +461,96 @@ static void sensorDataCorrection(FLT gyro[], FLT acc[], FLT mag[])
 /*--------------------------------------------------------------------------*/
 enum
 {
-    None = 0,
-    Case1 = 1,
-    Case2 = 2,
-    Case3 = 3,
+    None = 0,   // device alignment is not executed
+    Case1 = 1,  // only device horizon alignment complete
+    Case2 = 2,  // only device heading alignment complete
+    Case3 = 3,  // both device horizon/heading alignment complete
 };
-static U32 initialAlignment(const FLT facc[], const FLT fmag[])
-{
-    if (MagCalibration.iValidMagCal != 0)
-    {
-        // initial alignment case 3: 
-        // horizon alignment is completed before.
-        // heading alignment can be executed when calibration is completed.
-        if (PdrCtrl.uHeadingAlignFlag == 0 && PdrCtrl.uHorizonAlignFlag == 1)
-        {
-            headingAlignment(fmag, &AhrsFixData);
-            PdrCtrl.uHeadingAlignFlag = 1;
 
-            return Case3;
+static U32 deviceAlignment(const FLT facc[], const FLT fmag[])
+{
+    U32 retval = None;
+
+    if (PdrCtrl.uMotionFlag >= REST)
+    {
+        if (PdrCtrl.uDeviceHorizonAlignFlag == 0)
+        {
+            deviceHorizonAlignment(facc, &AhrsFixData);
+            PdrCtrl.uDeviceHorizonAlignFlag = 1;
+#if MAG_SUPPORT
+            retval = Case1;
+#else
+            PdrCtrl.uDeviceHeadingAlignFlag = 1;
+            retval = Case3;
+#endif
         }
     }
 
-    if (PdrCtrl.uStaticFlag == 1)
-    {
-        gyroCalibration(AhrsFixData.fGyroBias);
-        if (MagCalibration.iValidMagCal != 0)
-        {
-            // initial alignment case 1: 
-            // device is static and mag calibration is completed.
-            // horizon alignment and heading alignment can be executed simultaneously. 
-            if (PdrCtrl.uHeadingAlignFlag == 0 && PdrCtrl.uHorizonAlignFlag == 0)
-            {
-                compassAlignment(facc, fmag, &AhrsFixData);
-                PdrCtrl.uHeadingAlignFlag = 1;
-                PdrCtrl.uHorizonAlignFlag = 1;
+    return retval;
+}
 
-                return Case1;
-            }
+/*-------------------------------------------------------------------------*/
+/**
+  @brief    
+  @param    
+  @return
+  
+
+ */
+/*--------------------------------------------------------------------------*/
+#define HEADING_NUM 5
+
+static U32 pedestrianAlignment(const gnssData_t* const pGnssData, FLT *pHeading)
+{
+    U8 i = 0;
+    FLT heading = 0;
+    FLT velocity = 0;
+    FLT headingAverage = 0;
+    FLT headingStd = 0;
+    static FLT HeadingBuffer[HEADING_NUM];
+    static U8 HeadingCount = 0;
+
+    velocity = sqrtf(pGnssData->fVelE * pGnssData->fVelE + pGnssData->fVelN * pGnssData->fVelN);
+
+    if (velocity > 1.0)
+    {
+        heading = atan2f(pGnssData->fVelE, pGnssData->fVelN);
+
+        if (HeadingCount < HEADING_NUM)
+        {
+            HeadingBuffer[HeadingCount] = heading;
+            HeadingCount++;
         }
         else
         {
-            // initial alignment case 2: 
-            // device is static and mag calibration is not completed.
-            // only horizon alignment can be executed.
-            if (PdrCtrl.uHorizonAlignFlag == 0)
+            for (i = 0; i < HEADING_NUM - 1; i++)
             {
-                horizonAlignment(facc, &AhrsFixData);
-                PdrCtrl.uHorizonAlignFlag = 1;
+                HeadingBuffer[i] = HeadingBuffer[i+1];
+            }
+            HeadingBuffer[i] = heading;
+        }
 
-                return Case2;
+        if (HeadingCount == HEADING_NUM)
+        {
+            for (i = 0; i < HEADING_NUM; i++)
+            {
+                headingAverage += HeadingBuffer[i];
+            }
+            headingAverage = (FLT)(headingAverage * 1.0 / HEADING_NUM);
+
+            for (i = 0; i < HEADING_NUM; i++)
+            {
+                headingStd += (HeadingBuffer[i] - headingAverage) * (HeadingBuffer[i] - headingAverage);
+            }
+
+            headingStd = (FLT)(headingStd * 1.0 / (HEADING_NUM - 1));
+
+            if (headingStd < 0.1)
+            {
+                // pedestrian heading alignment complete
+                *pHeading = headingAverage;
+
+                return Case1;
             }
         }
     }
@@ -440,6 +558,15 @@ static U32 initialAlignment(const FLT facc[], const FLT fmag[])
     return None;
 }
 
+/*-------------------------------------------------------------------------*/
+/**
+  @brief    
+  @param    
+  @return
+  
+
+ */
+/*--------------------------------------------------------------------------*/
 static void gyroSmooth(FLT fgyro[], FLT gyroBuffer[][CHN])
 {
     U32 i = 0;
@@ -495,12 +622,6 @@ static void gyroSmooth(FLT fgyro[], FLT gyroBuffer[][CHN])
 
  */
 /*--------------------------------------------------------------------------*/
-#define     ACC_STATIC      (0.1)
-#define     GYRO_STATIC     (0.01)
-#define     ALIGN_NUM       (100)
-static FLT AlignGyroArray[ALIGN_NUM][CHN] = {0};
-static FLT AlignAccArray[ALIGN_NUM][CHN] = {0};
-
 static U32 staticDetect(const FLT gyro[], const FLT acc[])
 {
     FLT gyro_mean = 0;
@@ -553,11 +674,22 @@ static U32 staticDetect(const FLT gyro[], const FLT acc[])
         if (acc_std < ACC_STATIC && gyro_std < GYRO_STATIC)
         {
             // indicate static condition
-            return 1;
+            return STATIC;
+        }
+        else if (acc_std < ACC_REST && gyro_std < GYRO_REST)
+        {
+            // indicate rest condition
+            return REST;
+        }
+        else
+        {
+            // indicate move condition
+            return MOVE;
         }
     }
 
-    return 0;
+    // indicate detecting
+    return UNSURE;
 }
 
 /*-------------------------------------------------------------------------*/
@@ -580,17 +712,9 @@ static void gyroCalibration(FLT gyroBias[])
         fgyroSum[CHY] += AlignGyroArray[i][CHY];
         fgyroSum[CHZ] += AlignGyroArray[i][CHZ];
     }
-    gyroBias[CHX] += (FLT)(fgyroSum[CHX] * 1.0 / ALIGN_NUM);
-    gyroBias[CHY] += (FLT)(fgyroSum[CHY] * 1.0 / ALIGN_NUM);
-    gyroBias[CHZ] += (FLT)(fgyroSum[CHZ] * 1.0 / ALIGN_NUM);
-
-    // clear gyro buffer
-    for (i = 0; i < ALIGN_NUM; i++)
-    {
-        AlignGyroArray[i][CHX] = 0;
-        AlignGyroArray[i][CHY] = 0;
-        AlignGyroArray[i][CHZ] = 0;
-    }
+    gyroBias[CHX] = (FLT)(fgyroSum[CHX] * 1.0 / ALIGN_NUM);
+    gyroBias[CHY] = (FLT)(fgyroSum[CHY] * 1.0 / ALIGN_NUM);
+    gyroBias[CHZ] = (FLT)(fgyroSum[CHZ] * 1.0 / ALIGN_NUM);
 }
 
 /*-------------------------------------------------------------------------*/

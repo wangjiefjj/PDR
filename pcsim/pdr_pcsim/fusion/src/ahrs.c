@@ -10,7 +10,7 @@
 
 #define     SIG_PHI_E               (1.0*PI/180)                /* rms of pitch and roll */
 #define     SIG_PHI_N               (1.0*PI/180)                /* rms of pitch and roll */
-#define     SIG_PHI_U               (1.0*PI/180)                /* (rad)0.001 rms of heading */
+#define     SIG_PHI_U               (1.0*PI/180)                /* rms of heading */
 #define     SIG_ACC                 (0.3)                       /* rms of acc error(m/(s.s)) */
 #define     SIG_GYRO                (10.0*DEG2RAD/3600.0)       /* rms of gyro error  */
 
@@ -203,7 +203,7 @@ U32 compassAlignment(const FLT acc[], const FLT mag[], ahrsFixData_t* const pAhr
 
  */
 /*--------------------------------------------------------------------------*/
-U32 horizonAlignment(const FLT acc[], ahrsFixData_t* const pAhrsFixData)
+U32 deviceHorizonAlignment(const FLT acc[], ahrsFixData_t* const pAhrsFixData)
 {
     FLT fmodG = 0.0F;
     FLT fq[4] = {0.0F};
@@ -240,7 +240,7 @@ U32 horizonAlignment(const FLT acc[], ahrsFixData_t* const pAhrsFixData)
 
  */
 /*--------------------------------------------------------------------------*/
-U32 headingAlignment(const FLT mag[], ahrsFixData_t* const pAhrsFixData)
+U32 deviceHeadingAlignment(const FLT mag[], ahrsFixData_t* const pAhrsFixData)
 {
     FLT mHorizon[CHN] = {0.0F};
     FLT mVector[CHN] = {0.0F};

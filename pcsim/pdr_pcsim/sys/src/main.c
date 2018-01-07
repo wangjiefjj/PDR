@@ -72,6 +72,7 @@ int main(int argc,char *argv[])
     fclose(FpStep);
 #endif
 
+    getchar();
 	return 0;
 }
 
@@ -112,7 +113,7 @@ static U32 praseData(char *str, pdrData_t *pdrData)
             pdrData->gnssData.fVelE = (FLT)atof(section[5]);
             pdrData->gnssData.fVelN = (FLT)atof(section[6]);
             pdrData->gnssData.fVelU = (FLT)atof(section[7]);
-            pdrData->gnssData.fHeading = (FLT)atof(section[8]);
+            //pdrData->gnssData.fHeading = (FLT)atof(section[8]);
             break;
 
         case SENSOR_DATA:
