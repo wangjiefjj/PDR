@@ -196,6 +196,10 @@
 				>
 			</File>
 			<File
+				RelativePath="..\..\hal\src\orientation.c"
+				>
+			</File>
+			<File
 				RelativePath="..\..\hal\src\pdr.c"
 				>
 			</File>
@@ -227,6 +231,10 @@
 			</File>
 			<File
 				RelativePath="..\..\misc\inc\misc.h"
+				>
+			</File>
+			<File
+				RelativePath="..\..\hal\inc\orientation.h"
 				>
 			</File>
 			<File

@@ -8,6 +8,7 @@
 #include "ahrs.h"
 #include "step.h"
 #include "drFusion.h"
+#include "orientation.h"
 
 #define     GYRO_BUFFER_LEN     (50)
 #define     AVE_NUM             (5)
@@ -50,6 +51,7 @@ static ahrsFixData_t AhrsFixData;
 static kalmanInfo_t AhrsKalmanInfo;
 static kalmanInfo_t DrKalmanInfo;
 static stepInfo_t StepInfo;
+static pedestrianOrientation_t PdrOrientation;
 static pdrCtrl_t PdrCtrl;
 static pdrInfo_t PdrInfo;
 static FLT GyroSmoothBuffer[GYRO_BUFFER_LEN][CHN];
@@ -239,6 +241,8 @@ static void seDataProc(const sensorData_t* const pSensorData)
                 fgyro[i] = 0;
             }
         }
+
+        // quaternion integration for AHRS
         quaternionIntegration(utime, fgyro, &AhrsFixData);
         if (PdrCtrl.uDeviceHeadingAlignFlag == 1 && MagCalibration.iValidMagCal != 0)
         {
@@ -264,6 +268,7 @@ static void seDataProc(const sensorData_t* const pSensorData)
             ahrsKalmanExec(utime, facc, NULL, &AhrsKalmanInfo, &AhrsFixData);
         }
         AhrsFixData.uTime = utime;
+        updateDeviceOrientation(&PdrOrientation, &AhrsFixData);
 #ifdef DEBUG
         fprintf(FpAhrs, "%f, %f, %f\n", AhrsFixData.fPsiPl*RAD2DEG, AhrsFixData.fThePl*RAD2DEG, AhrsFixData.fPhiPl*RAD2DEG);
 #endif
@@ -292,13 +297,34 @@ static void seDataProc(const sensorData_t* const pSensorData)
                 DBL fLatitude = PdrInfo.fLatitude;
                 DBL fLongitude = PdrInfo.fLongitude;
                 DBL fAltitude = PdrInfo.fAltitude;
+                FLT fHeading = 0;
+                FLT fRelativeHeading = 0;
+                
+                getRelativeHeading(&PdrOrientation, &fRelativeHeading);
+                fHeading = PdrInfo.fHeading + fRelativeHeading;
+                if (fHeading > PI)
+                {
+                    fHeading -= 2*PI;
+                }
+                else if (fHeading < -PI)
+                {
+                    fHeading -= 2*PI;
+                }
+                else
+                {
 
-                fLatitude += StepInfo.stepLength * cosf(AhrsFixData.fPsiPl) / RM(fLatitude);
-                fLongitude += StepInfo.stepLength * sinf(AhrsFixData.fPsiPl) / RN(fLatitude) / cosf(fLatitude);
+                }
+
+                fLatitude += StepInfo.stepLength * cosf(fHeading) / RM(fLatitude);
+                fLongitude += StepInfo.stepLength * sinf(fHeading) / RN(fLatitude) / cosf(fLatitude);
 
                 PdrInfo.uTime = utime;
                 PdrInfo.fLatitude = fLatitude;
                 PdrInfo.fLongitude = fLongitude;
+                PdrInfo.fHeading = fHeading;
+
+                // update device reference heading
+                updateReferenceOrientation(&PdrOrientation, &AhrsFixData);
 #ifdef DEBUG
                 printf("%d step occur in %dms.\r\n", StepInfo.stepCount, StepInfo.preStepTime);
                 fprintf(FpOutput, "%d, %.8f, %.8f, %.8f\n", utime, fLatitude*RAD2DEG, fLongitude*RAD2DEG, fAltitude);
@@ -322,7 +348,6 @@ static void gnssDataProc(const gnssData_t* const pGnssData)
 {
     drFusionData_t drFusionData;
     FLT gnssVel = 0.0F;
-    FLT fq[4];
 
     if (pGnssData->uGnssFix != GNSS_FIX_NONE)
     {
@@ -332,7 +357,7 @@ static void gnssDataProc(const gnssData_t* const pGnssData)
     {
         // no gnss fix
 
-       // return;
+        // return;
     }
 
     memset(&drFusionData, 0, sizeof(drFusionData_t));
@@ -364,18 +389,8 @@ static void gnssDataProc(const gnssData_t* const pGnssData)
             PdrInfo.fLongitude = pGnssData->fLongitude;
             PdrInfo.fAltitude = pGnssData->fAltitude;
 
-            /* !!!only for gyro and acc aiding and device attitude is fixed!!! */
-            AhrsFixData.fPsiPl = PdrInfo.fHeading;
-
-            euler2q(fq, AhrsFixData.fPsiPl, AhrsFixData.fThePl, AhrsFixData.fPhiPl);
-            AhrsFixData.fqPl.q0 = fq[0];
-            AhrsFixData.fqPl.q1 = fq[1];
-            AhrsFixData.fqPl.q2 = fq[2];
-            AhrsFixData.fqPl.q3 = fq[3];
-
-            q2dcm(fq, AhrsFixData.fCbn);
-            memcpy(AhrsFixData.fCnb, AhrsFixData.fCbn, sizeof(AhrsFixData.fCnb));
-            f3x3matrixTranspose(AhrsFixData.fCnb);
+            // update device heading reference
+            updateReferenceOrientation(&PdrOrientation, &AhrsFixData);
         }
 
         return;
@@ -393,7 +408,7 @@ static void gnssDataProc(const gnssData_t* const pGnssData)
         drFusionData.fGnssHeading = atan2f(pGnssData->fVelE, pGnssData->fVelN);
         drFusionData.fPdrLatitude = PdrInfo.fLatitude;
         drFusionData.fPdrLongitude = PdrInfo.fLongitude;
-        drFusionData.fPdrHeading = AhrsFixData.fPsiPl;
+        drFusionData.fPdrHeading = PdrInfo.fHeading;
 
         status = drKalmanExec(&DrKalmanInfo, &drFusionData);
 
@@ -411,17 +426,10 @@ static void gnssDataProc(const gnssData_t* const pGnssData)
 
         if ((status & HeadingFix) != 0)
         {
-            // update ahrs information
-            AhrsFixData.uTime = drFusionData.utime;
-            AhrsFixData.fPsiPl = drFusionData.fPdrHeading;
-            euler2dcm(AhrsFixData.fCbn, AhrsFixData.fPsiPl, AhrsFixData.fThePl, AhrsFixData.fPhiPl);
-            euler2q(fq, AhrsFixData.fPsiPl, AhrsFixData.fThePl, AhrsFixData.fPhiPl);
-            memcpy(AhrsFixData.fCnb, AhrsFixData.fCbn, sizeof(AhrsFixData.fCnb));
-            f3x3matrixTranspose(AhrsFixData.fCnb);
-            AhrsFixData.fqPl.q0 = fq[0];
-            AhrsFixData.fqPl.q1 = fq[1];
-            AhrsFixData.fqPl.q2 = fq[2];
-            AhrsFixData.fqPl.q3 = fq[3];
+            PdrInfo.fHeading = drFusionData.fPdrHeading;
+
+            // update device heading reference
+            updateReferenceOrientation(&PdrOrientation, &AhrsFixData);
 #ifdef DEBUG
             printf("gnss heading aiding occur in %dms.\r\n", drFusionData.utime);
 #endif
