@@ -302,18 +302,7 @@ static void seDataProc(const sensorData_t* const pSensorData)
                 
                 getRelativeHeading(&PdrOrientation, &fRelativeHeading);
                 fHeading = PdrInfo.fHeading + fRelativeHeading;
-                if (fHeading > PI)
-                {
-                    fHeading -= 2*PI;
-                }
-                else if (fHeading < -PI)
-                {
-                    fHeading -= 2*PI;
-                }
-                else
-                {
-
-                }
+                fHeading = fHeadingMod(fHeading);
 
                 fLatitude += StepInfo.stepLength * cosf(fHeading) / RM(fLatitude);
                 fLongitude += StepInfo.stepLength * sinf(fHeading) / RN(fLatitude) / cosf(fLatitude);
@@ -379,7 +368,6 @@ static void gnssDataProc(const gnssData_t* const pGnssData)
 
         // device alignment and pedestrian alignment succeed
         if (PdrCtrl.uDeviceHorizonAlignFlag == 1 &&
-            PdrCtrl.uDeviceHeadingAlignFlag == 1 &&
             PdrCtrl.uPedestrianAlignFlag == 1
             )
         {
@@ -471,7 +459,7 @@ enum
 {
     None = 0,   // device alignment is not executed
     Case1 = 1,  // only device horizon alignment complete
-    Case2 = 2,  // only device heading alignment complete
+    Case2 = 2,  // only device heading alignment complete (never occur)
     Case3 = 3,  // both device horizon/heading alignment complete
 };
 
@@ -481,6 +469,7 @@ static U32 deviceAlignment(const FLT facc[], const FLT fmag[])
 
     if (PdrCtrl.uMotionFlag >= REST)
     {
+        /* device horizon alignment if device is rest */
         if (PdrCtrl.uDeviceHorizonAlignFlag == 0)
         {
             deviceHorizonAlignment(facc, &AhrsFixData);
@@ -491,6 +480,44 @@ static U32 deviceAlignment(const FLT facc[], const FLT fmag[])
             PdrCtrl.uDeviceHeadingAlignFlag = 1;
             retval = Case3;
 #endif
+        }
+
+        /* device heading alignment if:
+           1. device is rest
+           2. mag calibration is completed
+           3. device horizon alignment is completed
+        */
+        if (PdrCtrl.uDeviceHeadingAlignFlag == 0 && MagCalibration.iValidMagCal != 0)
+        {
+            if (PdrCtrl.uDeviceHorizonAlignFlag != 0 && MagCalibration.iValidMagCal != 0)
+            {
+                deviceHeadingAlignment(fmag, &AhrsFixData);
+                PdrCtrl.uDeviceHeadingAlignFlag = 1;
+                retval = Case3;
+
+                /* Consider these 3 pedestrian alignment procedures:
+                                        Proc1   Proc2   Proc3(*)
+                   Calibration:         1       2       3
+                   Device Horizon:      2       1       1
+                   Device Heading:      3       3       4
+                   Pedestrian Heading:  4       4       2
+                */
+
+                // process Procedure 3
+                if (PdrCtrl.uPedestrianAlignFlag == 1)
+                {
+                    // indicate pedestrian heading alignment is before device heading alignment
+                    // 1. feedback the old relative device heading to pedestrian heading
+                    // 2. update the new device heading reference
+                    FLT fRelativeHeading = 0;
+                    FLT fHeading = 0;
+
+                    getRelativeHeading(&PdrOrientation, &fRelativeHeading);
+                    fHeading = PdrInfo.fHeading + fRelativeHeading;
+                    fHeading = fHeadingMod(fHeading);
+                    updateReferenceOrientation(&PdrOrientation, &AhrsFixData);
+                }
+            }
         }
     }
 

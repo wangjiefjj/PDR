@@ -58,6 +58,33 @@ static FLT dtCalculate(U32 timeNow, U32 timeLast)
 
  */
 /*--------------------------------------------------------------------------*/
+FLT fHeadingMod(FLT fHeading)
+{
+    if (fHeading > PI)
+    {
+        fHeading -= 2*PI;
+    }
+    else if (fHeading < -PI)
+    {
+        fHeading -= 2*PI;
+    }
+    else
+    {
+
+    }
+
+    return fHeading;
+}
+
+/*-------------------------------------------------------------------------*/
+/**
+  @brief    
+  @param    
+  @return   
+  
+
+ */
+/*--------------------------------------------------------------------------*/
 U32 ahrsInit(ahrsFixData_t* const pAhrsFixData)
 {
     memset(pAhrsFixData, 0, sizeof(ahrsFixData_t));

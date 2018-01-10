@@ -13,11 +13,11 @@ extern "C" {
 #define     CHN             (3)
 
 
-#define     MAG_SUPPORT     (0)
+#define     MAG_SUPPORT     (1)
 #ifndef     GPS_CH_NUM
 #define     GPS_CH_NUM      (14)
 #endif
-    
+
     enum
     {
         GNSS_FIX_NONE = 0,
@@ -31,13 +31,13 @@ extern "C" {
         SENSOR_DATA = 1,
     } dataType_t;
 
-	typedef	struct sensorData
-	{
+    typedef	struct sensorData
+    {
         U32     uTime;      // ms
         FLT     fGyro[CHN];	// rad/s
         FLT     fAcc[CHN];	// m/s2
         FLT     fMag[CHN];	// uT
-	} sensorData_t;
+    } sensorData_t;
 
     typedef	struct gnssData
     {

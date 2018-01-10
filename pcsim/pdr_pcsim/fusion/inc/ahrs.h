@@ -14,7 +14,7 @@ extern "C" {
 #define     CHZ               (2)
 #define     CHN               (3)
 
-    
+
     typedef struct quaternion
     {
         FLT  q0;	// scalar component
@@ -22,7 +22,7 @@ extern "C" {
         FLT  q2;	// y vector component
         FLT  q3;	// z vector component
     } quaternion_t;
-	
+
     typedef struct ahrsFixData
     {
         U32   uTime;                    // time tag (ms)
@@ -39,6 +39,7 @@ extern "C" {
     } ahrsFixData_t;
 
     U32 ahrsInit(ahrsFixData_t* const pAhrsFixData);
+    FLT fHeadingMod(FLT fHeading);
     void gyroCorrection(FLT gyro[], const ahrsFixData_t* const pAhrsFixData);
     void accCorrection(FLT acc[], const ahrsFixData_t* const pAhrsFixData);
     U32 compassAlignment(const FLT acc[], const FLT mag[], ahrsFixData_t* const pAhrsFixData);
