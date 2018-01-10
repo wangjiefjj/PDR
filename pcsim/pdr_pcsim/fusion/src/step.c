@@ -89,6 +89,7 @@ U32 stepDetection(U32 utime, FLT stepDet, stepInfo_t* const pStepInfo)
         retval = 1;
         pStepInfo->stepCount ++;
         pStepInfo->preStepTime = lastLoopTime;
+        pStepInfo->stepDeltaTime = deltaStepTime;
     }
 
     pStepInfo->preSlop = slop;
