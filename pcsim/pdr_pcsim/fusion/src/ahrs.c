@@ -66,7 +66,7 @@ FLT fHeadingMod(FLT fHeading)
     }
     else if (fHeading < -PI)
     {
-        fHeading -= 2*PI;
+        fHeading += 2*PI;
     }
     else
     {
