@@ -72,6 +72,7 @@ int main(int argc,char *argv[])
     fclose(FpStep);
 #endif
 
+    printf("playback complete");
     getchar();
 	return 0;
 }
