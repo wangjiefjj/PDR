@@ -12,6 +12,7 @@
 
 #define     GYRO_BUFFER_LEN     (50)
 #define     AVE_NUM             (5)
+#define     AHRS_INTERVAL       (10)
 
 #define     ACC_STATIC          (0.1)
 #define     GYRO_STATIC         (0.01)
@@ -183,6 +184,9 @@ static void seDataProc(const sensorData_t* const pSensorData)
     static U32 LoopCounter = 0;
     static U32 AccLoopCounter = 0;
     static FLT AccDetSum = 0.0;
+    static U8 AhrsLoop = 0;
+    static FLT AccSum[CHN] = {0};
+    static FLT MagSum[CHN] = {0};
 
     /* sensor data correction */
     utime = pSensorData->uTime;
@@ -258,29 +262,61 @@ static void seDataProc(const sensorData_t* const pSensorData)
 
         // quaternion integration for AHRS
         quaternionIntegration(utime, fgyro, &AhrsFixData);
-        if (PdrCtrl.uDeviceHeadingAlignFlag == 1 && MagCalibration.iValidMagCal != 0)
-        {
-            FLT ferror = 0.0F;
 
-            // mag calibration quality check
-            ferror = magQualityControl(fmag, &AhrsFixData);
-            if (fabs(ferror) > 5)
+        // acc and mag aiding in 5 Hz
+        if (AhrsLoop == AHRS_INTERVAL)
+        {
+            FLT fAccAverage[3];
+            FLT fMagAverage[3];
+
+            for (i = CHX; i <= CHZ; i++)
             {
+                fAccAverage[i] = AccSum[i] / AHRS_INTERVAL;
+                fMagAverage[i] = MagSum[i] / AHRS_INTERVAL;
+            }
+
+            if (PdrCtrl.uDeviceHeadingAlignFlag == 1 && MagCalibration.iValidMagCal != 0)
+            {
+                FLT ferror = 0.0F;
+
+                // mag calibration quality check
+                ferror = magQualityControl(fMagAverage, &AhrsFixData);
+                if (fabs(ferror) > 5)
+                {
 #ifdef DEBUG
-                //printf("mag calibration invalid in %dms\r\n", utime);
+                    //printf("mag calibration invalid in %dms\r\n", utime);
 #endif
-                MagCalibration.iValidMagCal = 0;
-                ahrsKalmanExec(utime, facc, NULL, &AhrsKalmanInfo, &AhrsFixData);
+                    MagCalibration.iValidMagCal = 0;
+                    ahrsKalmanExec(utime, fAccAverage, NULL, &AhrsKalmanInfo, &AhrsFixData);
+                }
+                else
+                {
+                    ahrsKalmanExec(utime, fAccAverage, fMagAverage, &AhrsKalmanInfo, &AhrsFixData);
+                }
             }
             else
             {
-                ahrsKalmanExec(utime, facc, fmag, &AhrsKalmanInfo, &AhrsFixData);
+                ahrsKalmanExec(utime, fAccAverage, NULL, &AhrsKalmanInfo, &AhrsFixData);
             }
+
+            // clear acc and mag sum value
+            AhrsLoop = 0;
+            for (i = CHX; i <= CHZ; i++)
+            {
+                AccSum[i] = 0;
+                MagSum[i] = 0;
+            } 
         }
         else
         {
-            ahrsKalmanExec(utime, facc, NULL, &AhrsKalmanInfo, &AhrsFixData);
+            for (i = CHX; i <= CHZ; i++)
+            {
+                AccSum[i] += facc[i];
+                MagSum[i] += fmag[i];
+            }
+            AhrsLoop++;
         }
+        
         AhrsFixData.uTime = utime;
         updateDeviceOrientation(&PdrOrientation, &AhrsFixData);
 #ifdef DEBUG
