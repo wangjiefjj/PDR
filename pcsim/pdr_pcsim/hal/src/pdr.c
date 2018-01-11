@@ -66,7 +66,6 @@ static pdrInfo_t PdrInfo;
 static FLT GyroSmoothBuffer[GYRO_BUFFER_LEN][CHN];
 static FLT AlignGyroArray[ALIGN_NUM][CHN] = {0};
 static FLT AlignAccArray[ALIGN_NUM][CHN] = {0};
-static U32 magValidCount = 0;
 
 static void seDataProc(const sensorData_t* const pSensorData);
 static void gnssDataProc(const gnssData_t* const pGnssData);
@@ -435,7 +434,6 @@ static void gnssDataProc(const gnssData_t* const pGnssData)
     }
 
     // gnss aiding process
-    magValidCount ++;
     gnssVel = sqrtf(pGnssData->fVelE * pGnssData->fVelE + pGnssData->fVelN * pGnssData->fVelN + pGnssData->fVelU * pGnssData->fVelU);
     if (gnssVel > 1.5)
     {
@@ -530,7 +528,7 @@ static U32 deviceAlignment(const FLT facc[], const FLT fmag[])
        1. mag calibration is completed
        2. device horizon alignment is completed
     */
-    if (PdrCtrl.uDeviceHeadingAlignFlag == 0 && magValidCount >= 10)
+    if (PdrCtrl.uDeviceHeadingAlignFlag == 0)
     {
         if (PdrCtrl.uDeviceHorizonAlignFlag != 0 && MagCalibration.iValidMagCal != 0)
         {
