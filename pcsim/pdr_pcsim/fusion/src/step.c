@@ -86,10 +86,19 @@ U32 stepDetection(U32 utime, FLT stepDet, stepInfo_t* const pStepInfo)
     // step detect (wave summit & delta time & step det)
     if (pStepInfo->preSlop > 0 && slop < 0 && deltaStepTime > LOCKTIME && (pStepInfo->preStepDet - pStepInfo->stepDetAverage) > pStepInfo->stepThreshold)
     {
-        retval = 1;
         pStepInfo->stepCount ++;
         pStepInfo->preStepTime = lastLoopTime;
-        pStepInfo->stepDeltaTime = deltaStepTime;
+        if (pStepInfo->stepCount == 1)
+        {
+            pStepInfo->stepDeltaTime = 500;
+        }
+        else
+        {
+            pStepInfo->stepDeltaTime = deltaStepTime;
+        }
+        
+
+        retval = 1;
     }
 
     pStepInfo->preSlop = slop;
