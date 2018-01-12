@@ -448,6 +448,7 @@ static void gnssDataProc(const gnssData_t* const pGnssData)
         drFusionData.fPdrLongitude = PdrInfo.fLongitude;
         drFusionData.fPdrHeading = PdrInfo.fHeading;
         drFusionData.fPdrFrequency = (FLT)(1000.0 / StepInfo.stepDeltaTime);
+        drFusionData.fPdrStepLength = StepInfo.stepLength;
 
         status = drKalmanExec(utime, &DrKalmanInfo, &drFusionData);
 

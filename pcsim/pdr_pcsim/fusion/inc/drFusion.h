@@ -19,6 +19,7 @@ extern "C" {
         DBL fPdrLongitude;
         FLT fPdrHeading;
         FLT fPdrFrequency;
+        FLT fPdrStepLength;
     } drFusionData_t;
 
     typedef enum drFusionStatus
