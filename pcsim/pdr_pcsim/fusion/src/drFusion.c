@@ -14,7 +14,7 @@
 
 static const DBL INIT_RMS[] = {SIG_LAT, SIG_LON, SIG_HEADING};
 
-static void setPhimQd(kalmanInfo_t* const pKalmanInfo);
+static void setPhimQd(U32 utime, kalmanInfo_t* const pKalmanInfo, const drFusionData_t* const pFusionData);
 static U32 gnssMeasUpdate(kalmanInfo_t* const pKalmanInfo, const drFusionData_t* const pFusionData);
 static drFusionStatus_t errCorrection(kalmanInfo_t* const pKalmanInfo, drFusionData_t* const pFusionData);
 
@@ -49,11 +49,11 @@ U32 drKalmanInit(kalmanInfo_t* const pKalmanInfo)
 
  */
 /*--------------------------------------------------------------------------*/
-drFusionStatus_t drKalmanExec(kalmanInfo_t* const pKalmanInfo, drFusionData_t* const pFusionData)
+drFusionStatus_t drKalmanExec(U32 utime, kalmanInfo_t* const pKalmanInfo, drFusionData_t* const pFusionData)
 {
     drFusionStatus_t retvel;
 
-    setPhimQd(pKalmanInfo);
+    setPhimQd(utime, pKalmanInfo, pFusionData);
     udKfPredict(pKalmanInfo);
     gnssMeasUpdate(pKalmanInfo, pFusionData);
     retvel = errCorrection(pKalmanInfo, pFusionData);
@@ -70,7 +70,7 @@ drFusionStatus_t drKalmanExec(kalmanInfo_t* const pKalmanInfo, drFusionData_t* c
 
  */
 /*--------------------------------------------------------------------------*/
-static void setPhimQd(kalmanInfo_t* const pKalmanInfo)
+static void setPhimQd(U32 utime, kalmanInfo_t* const pKalmanInfo, const drFusionData_t* const pFusionData)
 {
     pKalmanInfo->A[uMatIdx(1, 1, pKalmanInfo->stateNum)] = 1.0F;
     pKalmanInfo->A[uMatIdx(2, 2, pKalmanInfo->stateNum)] = 1.0F;

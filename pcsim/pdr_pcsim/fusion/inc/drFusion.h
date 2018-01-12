@@ -11,13 +11,14 @@ extern "C" {
 
     typedef struct drFusionData
     {
-        U32 utime;
-        DBL fGnssLatitude;
-        DBL fGnssLongitude;
-        FLT fGnssHeading;
+        U32 utime;              // dr fix time
+        DBL fGnssLatitude;      // input measurement
+        DBL fGnssLongitude;     // input measurement
+        FLT fGnssHeading;       // input measurement
         DBL fPdrLatitude;
         DBL fPdrLongitude;
         FLT fPdrHeading;
+        FLT fPdrFrequency;
     } drFusionData_t;
 
     typedef enum drFusionStatus
@@ -28,7 +29,7 @@ extern "C" {
     } drFusionStatus_t;
 
     U32 drKalmanInit(kalmanInfo_t* const pKalmanInfo);
-    drFusionStatus_t drKalmanExec(kalmanInfo_t* const pKalmanInfo, drFusionData_t* const pFusionData);
+    drFusionStatus_t drKalmanExec(U32 utime, kalmanInfo_t* const pKalmanInfo, drFusionData_t* const pFusionData);
 
 
 #ifdef __cplusplus

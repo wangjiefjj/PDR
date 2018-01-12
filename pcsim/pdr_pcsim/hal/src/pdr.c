@@ -384,6 +384,7 @@ static void seDataProc(const sensorData_t* const pSensorData)
 /*--------------------------------------------------------------------------*/
 static void gnssDataProc(const gnssData_t* const pGnssData)
 {
+    U32 utime = 0;
     drFusionData_t drFusionData;
     FLT gnssVel = 0.0F;
 
@@ -398,6 +399,7 @@ static void gnssDataProc(const gnssData_t* const pGnssData)
         // return;
     }
 
+    utime = pGnssData->uTime;
     memset(&drFusionData, 0, sizeof(drFusionData_t));
 
     if (PdrCtrl.uPdrNavFlag != 1)
@@ -421,7 +423,7 @@ static void gnssDataProc(const gnssData_t* const pGnssData)
             )
         {
             PdrCtrl.uPdrNavFlag = 1;
-            PdrInfo.uTime = pGnssData->uTime;
+            PdrInfo.uTime = utime;
             PdrInfo.fLatitude = pGnssData->fLatitude;
             PdrInfo.fLongitude = pGnssData->fLongitude;
             PdrInfo.fAltitude = pGnssData->fAltitude;
@@ -439,18 +441,19 @@ static void gnssDataProc(const gnssData_t* const pGnssData)
     {
         U32 status = NoFix;
 
-        drFusionData.utime = pGnssData->uTime;
         drFusionData.fGnssLatitude = pGnssData->fLatitude;
         drFusionData.fGnssLongitude = pGnssData->fLongitude;
         drFusionData.fGnssHeading = atan2f(pGnssData->fVelE, pGnssData->fVelN);
         drFusionData.fPdrLatitude = PdrInfo.fLatitude;
         drFusionData.fPdrLongitude = PdrInfo.fLongitude;
         drFusionData.fPdrHeading = PdrInfo.fHeading;
+        drFusionData.fPdrFrequency = (FLT)(1000.0 / StepInfo.stepDeltaTime);
 
-        status = drKalmanExec(&DrKalmanInfo, &drFusionData);
+        status = drKalmanExec(utime, &DrKalmanInfo, &drFusionData);
 
         if ((status & PosFix) != 0)
         {
+            drFusionData.utime = utime;
             // update pdr information
             PdrInfo.uTime = drFusionData.utime;
             PdrInfo.fLatitude = drFusionData.fPdrLatitude;
@@ -463,8 +466,8 @@ static void gnssDataProc(const gnssData_t* const pGnssData)
 
         if ((status & HeadingFix) != 0)
         {
+            drFusionData.utime = utime;
             PdrInfo.fHeading = drFusionData.fPdrHeading;
-
             // update device heading reference
             updateReferenceOrientation(&PdrOrientation, &AhrsFixData);
 #ifdef DEBUG
