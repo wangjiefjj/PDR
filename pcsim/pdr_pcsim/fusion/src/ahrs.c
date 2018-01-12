@@ -23,7 +23,7 @@
 static const DBL INIT_RMS[] = {SIG_PHI_E, SIG_PHI_N, SIG_PHI_U, SIG_GYRO, SIG_GYRO, SIG_GYRO, SIG_ACC, SIG_ACC, SIG_ACC};
 
 static FLT dtCalculate(U32 timeNow, U32 timeLast);
-static void setPhimQd(U32 utime, kalmanInfo_t* const pKalmanInfo, ahrsFixData_t* const pAhrsFixData);
+static void setPhimQd(U32 utime, kalmanInfo_t* const pKalmanInfo, const ahrsFixData_t* const pAhrsFixData);
 static U32 accMeasUpdate(const FLT acc[], kalmanInfo_t* const pKalmanInfo, ahrsFixData_t* const pAhrsFixData);
 static U32 magMeasUpdate(const FLT mag[], kalmanInfo_t* const pKalmanInfo, ahrsFixData_t* const pAhrsFixData);
 static void errCorrection(kalmanInfo_t* const pKalmanInfo, ahrsFixData_t* const pAhrsFixData);
@@ -400,14 +400,13 @@ U32 ahrsKalmanExec(U32 utime, const FLT acc[], const FLT mag[], kalmanInfo_t* co
 
  */
 /*--------------------------------------------------------------------------*/
-static void setPhimQd(U32 utime, kalmanInfo_t* const pKalmanInfo, ahrsFixData_t* const pAhrsFixData)
+static void setPhimQd(U32 utime, kalmanInfo_t* const pKalmanInfo, const ahrsFixData_t* const pAhrsFixData)
 {
     U32 i = 0;
     U32 j = 0;
     U32 stateNum = STATE_NUM;
     DBL phim[STATE_NUM][STATE_NUM] = {0};
     DBL qdt[STATE_NUM][STATE_NUM] = {0};
-    FLT (*fCbn)[3] = pAhrsFixData->fCbn;
     DBL G[STATE_NUM][STATE_NUM] = {0};         // the row and col of shaping matrix are related with model rather than fixed.
     DBL GT[STATE_NUM][STATE_NUM] = {0};        // the transpose of G matrix
     DBL M2[STATE_NUM][STATE_NUM] = {0};
@@ -427,17 +426,17 @@ static void setPhimQd(U32 utime, kalmanInfo_t* const pKalmanInfo, ahrsFixData_t*
     }
 
     //set PHI matrix
-    phim[0][3] = (DBL) -fCbn[0][0];
-    phim[0][4] = (DBL) -fCbn[0][1];
-    phim[0][5] = (DBL) -fCbn[0][2];
+    phim[0][3] = (DBL) -pAhrsFixData->fCbn[0][0];
+    phim[0][4] = (DBL) -pAhrsFixData->fCbn[0][1];
+    phim[0][5] = (DBL) -pAhrsFixData->fCbn[0][2];
 
-    phim[1][3] = (DBL) -fCbn[1][0];
-    phim[1][4] = (DBL) -fCbn[1][1];
-    phim[1][5] = (DBL) -fCbn[1][2];
+    phim[1][3] = (DBL) -pAhrsFixData->fCbn[1][0];
+    phim[1][4] = (DBL) -pAhrsFixData->fCbn[1][1];
+    phim[1][5] = (DBL) -pAhrsFixData->fCbn[1][2];
 
-    phim[2][3] = (DBL) -fCbn[2][0];
-    phim[2][4] = (DBL) -fCbn[2][1];
-    phim[2][5] = (DBL) -fCbn[2][2];
+    phim[2][3] = (DBL) -pAhrsFixData->fCbn[2][0];
+    phim[2][4] = (DBL) -pAhrsFixData->fCbn[2][1];
+    phim[2][5] = (DBL) -pAhrsFixData->fCbn[2][2];
 
     phim[3][3] = (DBL) - 1.0F / GYRO_TIME_CONSTANT;
     phim[4][4] = (DBL) - 1.0F / GYRO_TIME_CONSTANT;
@@ -461,17 +460,17 @@ static void setPhimQd(U32 utime, kalmanInfo_t* const pKalmanInfo, ahrsFixData_t*
     qdt[8][8] = (DBL)SIGMA_ACC;
 
     // set G matrix
-    G[0][0] = (DBL) -fCbn[0][0];
-    G[0][1] = (DBL) -fCbn[0][1];
-    G[0][2] = (DBL) -fCbn[0][2];
+    G[0][0] = (DBL) -pAhrsFixData->fCbn[0][0];
+    G[0][1] = (DBL) -pAhrsFixData->fCbn[0][1];
+    G[0][2] = (DBL) -pAhrsFixData->fCbn[0][2];
 
-    G[1][0] = (DBL) -fCbn[1][0];
-    G[1][1] = (DBL) -fCbn[1][1];
-    G[1][2] = (DBL) -fCbn[1][2];
+    G[1][0] = (DBL) -pAhrsFixData->fCbn[1][0];
+    G[1][1] = (DBL) -pAhrsFixData->fCbn[1][1];
+    G[1][2] = (DBL) -pAhrsFixData->fCbn[1][2];
 
-    G[2][0] = (DBL) -fCbn[2][0];
-    G[2][1] = (DBL) -fCbn[2][1];
-    G[2][2] = (DBL) -fCbn[2][2];
+    G[2][0] = (DBL) -pAhrsFixData->fCbn[2][0];
+    G[2][1] = (DBL) -pAhrsFixData->fCbn[2][1];
+    G[2][2] = (DBL) -pAhrsFixData->fCbn[2][2];
 
     for (i = 3; i < stateNum; i++)
     {
