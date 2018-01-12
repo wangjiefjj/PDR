@@ -39,7 +39,11 @@ static void errCorrection(kalmanInfo_t* const pKalmanInfo, ahrsFixData_t* const 
 /*--------------------------------------------------------------------------*/
 static FLT dtCalculate(U32 timeNow, U32 timeLast)
 {
-    if (timeLast > timeNow)
+    if (timeLast == 0)
+    {
+        return (FLT)(1.0 / 5.0);
+    }
+    else if (timeLast > timeNow)
     {
         return (0xFFFFFFFF - timeLast + timeNow) / 1000.0F;
     }
@@ -510,7 +514,7 @@ static void setPhimQd(U32 utime, kalmanInfo_t* const pKalmanInfo, const ahrsFixD
     }
     matrixMult(pRowA, pRowB, stateNum, stateNum, stateNum, stateNum, pRowC);
 
-    fdt = dtCalculate(utime, pAhrsFixData->uTime);
+    fdt = dtCalculate(utime, pKalmanInfo->msCnt);
     for (i = 0; i < stateNum; i++)
     {
         for (j = 0; j < stateNum; j++)
