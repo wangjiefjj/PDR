@@ -25,8 +25,9 @@ extern "C" {
     typedef enum drFusionStatus
     {
         NoFix = 0,
-        PosFix = 1<<1,
-        HeadingFix = 1<<2,
+        PosFix = 1 << 1,
+        HeadingFix = 1 << 2,
+        LengthFix = 1 << 3,
     } drFusionStatus_t;
 
     U32 drKalmanInit(kalmanInfo_t* const pKalmanInfo);

@@ -475,6 +475,16 @@ static void gnssDataProc(const gnssData_t* const pGnssData)
             printf("gnss heading aiding occur in %dms.\r\n", drFusionData.utime);
 #endif
         }
+
+        if ((status & LengthFix) != 0)
+        {
+            drFusionData.utime = utime;
+            // update step information
+            StepInfo.stepLength = drFusionData.fPdrStepLength;
+#ifdef DEBUG
+            printf("gnss step length aiding occur in %dms.\r\n", drFusionData.utime);
+#endif
+        } 
     }
 }
 
